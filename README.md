@@ -1,200 +1,284 @@
-# Yogyata Frontend
 
-A modern React-based frontend for the Yogyata blockchain credential verification platform.
+# Yogyata - Blockchain-Verified Micro-Credential Platform
 
-## 🌟 Features
+A decentralized platform for issuing, verifying, and managing blockchain-verified educational credentials.
 
-- **Blockchain Credential Verification**: Instant verification of educational and professional credentials
-- **AI-Powered Job Matching**: Smart recommendations based on verified skills
-- **User-Friendly Interface**: Clean, responsive design with intuitive navigation
-- **Real-time Verification**: Quick blockchain-based credential authentication
-- **Admin Dashboard**: Comprehensive management tools for administrators
-- **Mobile Responsive**: Optimized for all devices and screen sizes
+## 🚀 Features
 
-## 🚀 Technology Stack
-
-- **Frontend**: React 18, React Router
-- **Styling**: CSS3 with CSS Variables, Flexbox, and Grid
-- **Icons**: Font Awesome
-- **Build Tool**: Vite
-- **Package Manager**: npm
+- **Blockchain Verification**: Credentials stored on Polygon/Ethereum for immutable verification
+- **Role-Based Access**: Separate dashboards for Students, Institutions, and Employers
+- **AI-Powered Recommendations**: Skill matching and course recommendations (AI partner integration ready)
+- **IPFS Storage**: Decentralized metadata storage for credentials
+- **QR Code Verification**: Instant verification via QR code scanning
+- **Chatbot Integration**: AI-powered assistance (placeholder endpoints ready)
 
 ## 📁 Project Structure
 
 ```
-yogyata-frontend/
-├── public/
-│   ├── index.html
-│   └── assets/              # Static assets
-├── src/
-│   ├── components/
-│   │   ├── common/          # Reusable components
-│   │   │   ├── Button.jsx
-│   │   │   ├── Input.jsx
-│   │   │   └── Modal.jsx
-│   │   ├── layout/          # Layout components
-│   │   │   ├── Navbar.jsx
-│   │   │   ├── Sidebar.jsx
-│   │   │   └── Footer.jsx
-│   │   └── features/        # Feature-specific components
-│   │       ├── jobs/
-│   │       ├── profile/
-│   │       └── admin/
-│   ├── pages/               # Main page views
-│   │   ├── Home.jsx
-│   │   ├── Profile.jsx
-│   │   ├── JobSearch.jsx
-│   │   ├── AIAssistant.jsx
-│   │   ├── VerificationPortal.jsx
-│   │   └── admin/
-│   ├── styles/              # Global styles
-│   │   ├── variables.css
-│   │   └── global.css
-│   ├── App.jsx
-│   └── main.jsx
-├── package.json
-└── README.md
+Yogyata/
+├── backend/                  # Express.js API server
+│   ├── src/
+│   │   ├── config/          # Supabase configuration
+│   │   ├── middleware/      # Auth middleware
+│   │   ├── routes/          # API routes
+│   │   └── index.js         # Server entry point
+│   ├── .env.example         # Environment variables template
+│   └── package.json
+│
+├── frontend/                 # React.js application
+│   ├── public/
+│   ├── src/
+│   │   ├── components/      # Reusable components
+│   │   ├── context/         # React context (Auth)
+│   │   ├── layouts/         # Page layouts
+│   │   ├── pages/           # Page components
+│   │   ├── services/        # API service
+│   │   └── styles/          # Global CSS
+│   ├── .env.example         # Environment variables template
+│   └── package.json
 ```
 
-## 🛠 Installation & Setup
+## 🛠️ Tech Stack
 
-1. **Clone the repository**
+### Frontend
+
+- React 18.2
+- React Router DOM 6.20
+- React Icons
+- React Toastify
+- Axios
+- QRCode.react (for QR code generation)
+- Supabase Auth
+
+### Backend
+
+- Express.js 4.18
+- Supabase (Auth & Database)
+- CORS, Helmet (Security)
+- Morgan (Logging)
+- UUID
+- Express Validator
+
+### External Integrations (Placeholder Ready)
+
+- Blockchain: Polygon/Ethereum (testnet)
+- Storage: IPFS
+- AI: DistilBERT NLP for skill matching
+
+## 🚦 Getting Started
+
+### Prerequisites
+
+- Node.js 18+
+- npm or yarn
+- Supabase account
+
+### Backend Setup
+
+1. Navigate to backend folder:
 
    ```bash
-   git clone <repository-url>
-   cd yogyata-frontend
+   cd backend
    ```
 
-2. **Install dependencies**
+2. Install dependencies:
 
    ```bash
    npm install
    ```
 
-3. **Start development server**
+3. Create `.env` file from `.env.example`:
 
+   ```env
+   PORT=5000
+   NODE_ENV=development
+   SUPABASE_URL=your_supabase_url
+   SUPABASE_ANON_KEY=your_supabase_anon_key
+   SUPABASE_SERVICE_KEY=your_supabase_service_key
+   JWT_SECRET=your_jwt_secret
+   BLOCKCHAIN_SERVICE_URL=http://localhost:3001
+   AI_SERVICE_URL=http://localhost:3002
+   IPFS_GATEWAY_URL=https://ipfs.io/ipfs
+   ```
+
+4. Start the server:
    ```bash
    npm run dev
    ```
+   Server runs on `http://localhost:5000`
 
-4. **Open in browser**
-   Navigate to `http://localhost:5173`
+### Frontend Setup
 
-## 📱 Available Pages
-
-### Public Pages
-
-- **Home** (`/`) - Landing page with platform overview
-- **Verification Portal** (`/verification`) - Public credential verification
-
-### User Pages
-
-- **Profile** (`/profile`) - User profile and credentials management
-- **Job Search** (`/jobs`) - AI-powered job discovery
-- **AI Assistant** (`/ai-assistant`) - Career guidance chatbot
-
-### Admin Pages
-
-- **Admin Dashboard** (`/admin`) - System overview and analytics
-- **User Management** (`/admin/users`) - User administration
-- **Credential Management** (`/admin/credentials`) - Credential oversight
-
-## 🎨 Design System
-
-### Color Palette
-
-- **Primary**: `#3b82f6` (Blue)
-- **Secondary**: `#6b7280` (Gray)
-- **Success**: `#10b981` (Green)
-- **Warning**: `#f59e0b` (Orange)
-- **Danger**: `#ef4444` (Red)
-
-### Typography
-
-- **Font Family**: Inter, system fonts
-- **Sizes**: 12px to 36px with consistent scale
-
-### Components
-
-- Reusable Button, Input, and Modal components
-- Consistent spacing and border radius
-- Responsive design patterns
-
-## 🔧 Development Scripts
-
-```bash
-# Start development server
-npm run dev
-
-# Build for production
-npm run build
-
-# Preview production build
-npm run preview
-
-# Run linting
-npm run lint
-```
-
-## 📦 Build & Deployment
-
-1. **Build the project**
+1. Navigate to frontend folder:
 
    ```bash
-   npm run build
+   cd frontend
    ```
 
-2. **Deploy the `dist` folder** to your hosting service
+2. Install dependencies:
 
-## 🌐 Browser Support
+   ```bash
+   npm install
+   ```
 
-- Chrome (latest)
-- Firefox (latest)
-- Safari (latest)
-- Edge (latest)
+3. Create `.env` file from `.env.example`:
 
-## 🤝 Contributing
+   ```env
+   REACT_APP_API_URL=http://localhost:5000/api
+   REACT_APP_SUPABASE_URL=your_supabase_url
+   REACT_APP_SUPABASE_ANON_KEY=your_supabase_anon_key
+   ```
 
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+4. Start the development server:
+   ```bash
+   npm start
+   ```
+   App runs on `http://localhost:3000`
 
-## 📄 License
+## 📡 API Endpoints
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+### Authentication
 
-## 🆘 Support
+- `POST /api/auth/register` - Register new user
+- `POST /api/auth/login` - User login
+- `POST /api/auth/logout` - User logout
+- `GET /api/auth/me` - Get current user
 
-For support and questions, please contact:
+### Credentials
 
-- Email: support@yogyata.com
-- Documentation: [docs.yogyata.com](https://docs.yogyata.com)
+- `POST /api/credentials` - Issue new credential
+- `GET /api/credentials` - List credentials
+- `GET /api/credentials/:id` - Get credential details
+- `PUT /api/credentials/:id/revoke` - Revoke credential
 
-## 🚧 Roadmap
+### Verification
 
-### Phase 1 (Current)
+- `GET /api/verification/:id` - Verify credential by ID
 
-- ✅ Core UI components
-- ✅ User authentication flow
-- ✅ Basic credential management
-- ✅ Job search functionality
+### AI Integration (Placeholder)
 
-### Phase 2 (Upcoming)
+- `POST /api/ai/match/jobs` - Match credentials to job description
+- `POST /api/ai/recommendations/skills` - Get skill recommendations
+- `POST /api/ai/analyze/paperwork` - Analyze paperwork (future)
 
-- 🔄 Blockchain integration
-- 🔄 Advanced AI features
-- 🔄 Real-time notifications
-- 🔄 Mobile app
+### Chatbot (Placeholder)
 
-### Phase 3 (Future)
+- `POST /api/chatbot/message` - Send message to chatbot
+- `GET /api/chatbot/history` - Get chat history
 
-- 📋 Multi-language support
-- 📋 Advanced analytics
-- 📋 Third-party integrations
-- 📋 Enterprise features
+## 🎨 Pages
 
----
+1. **Landing Page** - Public homepage with features showcase
+2. **Auth Pages** - Login, Signup, Forgot Password
+3. **Student Dashboard** - View credentials, stats, recommendations
+4. **Credential Detail** - Full credential view with QR code
+5. **Institution Dashboard** - Issue and manage credentials
+6. **Issue Credential** - Multi-step credential issuance form
+7. **Verification Portal** - Public credential verification
+8. **AI Skill Matcher** - Job description analyzer
+9. **Employer Dashboard** - Search and verify candidates
 
-Built with ❤️ by the Yogyata Team
+## 🔐 User Roles
+
+- **Student**: View credentials, get recommendations, share with employers
+- **Institution**: Issue credentials, manage issuance, view analytics
+- **Employer**: Verify credentials, search candidates, generate reports
+
+## 🤝 AI Partner Integration
+
+The platform has placeholder endpoints for AI integration:
+
+- `/api/ai/*` - AI service endpoints
+- `/api/chatbot/*` - Chatbot service endpoints
+
+Configure `AI_SERVICE_URL` in environment variables to connect your AI service.
+
+## 📄 Supabase Tables Required
+
+```sql
+-- Users table (handled by Supabase Auth)
+
+-- Credentials table
+CREATE TABLE credentials (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  issuer_id UUID REFERENCES auth.users(id),
+  recipient_email TEXT NOT NULL,
+  recipient_id UUID REFERENCES auth.users(id),
+  title TEXT NOT NULL,
+  description TEXT,
+  credential_type TEXT DEFAULT 'certificate',
+  skills TEXT[],
+  metadata JSONB DEFAULT '{}',
+  issue_date DATE,
+  expiry_date DATE,
+  status TEXT DEFAULT 'pending_blockchain',
+  blockchain_hash TEXT,
+  ipfs_hash TEXT,
+  is_revoked BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Verification logs
+CREATE TABLE verification_logs (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  credential_id UUID REFERENCES credentials(id),
+  verifier_id UUID,
+  verified_at TIMESTAMPTZ DEFAULT NOW(),
+  ip_address TEXT,
+  result TEXT
+);
+
+-- Institutions
+CREATE TABLE institutions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES auth.users(id),
+  name TEXT NOT NULL,
+  type TEXT,
+  website TEXT,
+  verified BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Student profiles
+CREATE TABLE student_profiles (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES auth.users(id),
+  bio TEXT,
+  skills TEXT[],
+  interests TEXT[],
+  education JSONB DEFAULT '[]',
+  career_goals TEXT,
+  linkedin_url TEXT,
+  portfolio_url TEXT,
+  is_public BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+```
+
+## 🧪 Development
+
+### Code Style
+
+- React functional components with hooks
+- CSS modules (no Tailwind, pure CSS)
+- CSS variables for theming
+- Mobile-first responsive design
+
+### CSS Color Variables
+
+```css
+--primary-500: #6366F1
+--secondary-500: #10B981
+--gray-900: #111827
+--error: #EF4444
+```
+
+## 📝 License
+
+MIT License
+
+## 👥 Contributors
+
+- Yogyata Development Team
