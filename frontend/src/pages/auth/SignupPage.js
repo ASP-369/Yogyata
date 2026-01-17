@@ -13,6 +13,7 @@ import {
 import { HiOutlineBuildingOffice2 } from "react-icons/hi2";
 import { toast } from "react-toastify";
 import "./Auth.css";
+import { supabase } from "../../config/supabase";
 
 const SignupPage = () => {
   const [searchParams] = useSearchParams();
@@ -26,6 +27,7 @@ const SignupPage = () => {
     role: initialRole,
     institutionName: "",
     companyName: "",
+    aadhar: "",
   });
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -72,7 +74,7 @@ const SignupPage = () => {
           formData.role === "employer" ? formData.companyName : null,
       };
 
-      const { error } = await signUp(
+      const { data, error } = await signUp(
         formData.email,
         formData.password,
         metadata
@@ -82,12 +84,30 @@ const SignupPage = () => {
         setError(error.message);
         toast.error(error.message);
       } else {
+        // If student, create profile in 'student' table
+        if (formData.role === "student" && data?.user?.id) {
+          const { error: studentError } = await supabase
+            .from("student")
+            .insert([{
+              id: data.user.id,
+              email: formData.email,
+              aadhar: formData.aadhar,
+              // any other fields if needed, e.g. name? User said 'aadhar also'
+            }]);
+
+          if (studentError) {
+            console.error("Failed to create student profile:", studentError);
+            toast.error("Account created but failed to save student profile details.");
+          }
+        }
+
         toast.success(
           "Account created! Please check your email for verification."
         );
         navigate("/login");
       }
     } catch (err) {
+      console.error(err);
       setError("An unexpected error occurred");
       toast.error("An unexpected error occurred");
     } finally {
@@ -174,6 +194,25 @@ const SignupPage = () => {
                 />
               </div>
             </div>
+
+            {formData.role === "student" && (
+              <div className="form-group">
+                <label htmlFor="aadhar">Aadhar Number</label>
+                <div className="input-wrapper">
+                  <FiUser className="input-icon" />
+                  <input
+                    type="text"
+                    id="aadhar"
+                    name="aadhar"
+                    value={formData.aadhar}
+                    onChange={handleChange}
+                    placeholder="12-digit Aadhar Number"
+                    required
+                    style={{ color: "black" }}
+                  />
+                </div>
+              </div>
+            )}
 
             <div className="form-group">
               <label htmlFor="email">Email Address</label>
