@@ -1,6 +1,7 @@
 import React from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "./context/AuthContext";
+import { Web3Provider } from "./context/Web3Context";
 
 // Layouts
 import MainLayout from "./layouts/MainLayout";
@@ -25,9 +26,13 @@ import StudentRecommendations from "./pages/student/Recommendations";
 // Institution Pages
 import InstitutionDashboard from "./pages/institution/Dashboard";
 import IssueCredential from "./pages/institution/IssueCredential";
+import CredentialManagement from "./pages/institution/CredentialManagement";
 
 // Employer Pages
 import EmployerDashboard from "./pages/employer/Dashboard";
+
+// Admin Pages
+import AdminPanel from "./pages/admin/AdminPanel";
 
 // Placeholder components for routes not yet implemented
 const PlaceholderPage = ({ title }) => (
@@ -58,117 +63,119 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
 
 function App() {
   return (
-    <Routes>
-      {/* Public Routes */}
-      <Route path="/" element={<MainLayout />}>
-        <Route index element={<LandingPage />} />
-      </Route>
+    <Web3Provider>
+      <Routes>
+        {/* Public Routes */}
+        <Route path="/" element={<MainLayout />}>
+          <Route index element={<LandingPage />} />
+        </Route>
 
-      {/* Public Verification Route */}
-      <Route path="/verify" element={<VerifyCredential />} />
-      <Route path="/verify/:credentialId" element={<VerifyCredential />} />
+        {/* Public Verification Route */}
+        <Route path="/verify" element={<VerifyCredential />} />
+        <Route path="/verify/:credentialId" element={<VerifyCredential />} />
 
-      {/* Auth Routes */}
-      <Route path="/login" element={<LoginPage />} />
-      <Route path="/signup" element={<SignupPage />} />
-      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        {/* Auth Routes */}
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/signup" element={<SignupPage />} />
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
 
-      {/* Student Routes */}
-      <Route
-        path="/student"
-        element={
-          <ProtectedRoute allowedRoles={["student"]}>
-            <DashboardLayout role="student" />
-          </ProtectedRoute>
-        }
-      >
-        <Route index element={<Navigate to="dashboard" replace />} />
-        <Route path="dashboard" element={<StudentDashboard />} />
-        <Route path="credentials" element={<StudentCredentials />} />
-        <Route path="credentials/:id" element={<CredentialDetail />} />
-        <Route path="profile" element={<StudentProfile />} />
-        <Route path="recommendations" element={<StudentRecommendations />} />
-      </Route>
+        {/* Admin Route */}
+        <Route path="/admin" element={<AdminPanel />} />
 
-      {/* Institution Routes */}
-      <Route
-        path="/institution"
-        element={
-          <ProtectedRoute allowedRoles={["institution"]}>
-            <DashboardLayout role="institution" />
-          </ProtectedRoute>
-        }
-      >
-        <Route index element={<Navigate to="dashboard" replace />} />
-        <Route path="dashboard" element={<InstitutionDashboard />} />
-        <Route path="issue" element={<IssueCredential />} />
+        {/* Student Routes */}
         <Route
-          path="credentials"
-          element={<PlaceholderPage title="Institution Credentials" />}
-        />
-        <Route path="credentials/:id" element={<CredentialDetail />} />
-        <Route
-          path="profile"
-          element={<PlaceholderPage title="Institution Profile" />}
-        />
-        <Route
-          path="bulk-issue"
-          element={<PlaceholderPage title="Bulk Issue Credentials" />}
-        />
-        <Route
-          path="templates"
-          element={<PlaceholderPage title="Credential Templates" />}
-        />
-        <Route
-          path="analytics"
-          element={<PlaceholderPage title="Analytics" />}
-        />
-      </Route>
+          path="/student"
+          element={
+            <ProtectedRoute allowedRoles={["student"]}>
+              <DashboardLayout role="student" />
+            </ProtectedRoute>
+          }
+        >
+          <Route index element={<Navigate to="dashboard" replace />} />
+          <Route path="dashboard" element={<StudentDashboard />} />
+          <Route path="credentials" element={<StudentCredentials />} />
+          <Route path="credentials/:id" element={<CredentialDetail />} />
+          <Route path="profile" element={<StudentProfile />} />
+          <Route path="recommendations" element={<StudentRecommendations />} />
+        </Route>
 
-      {/* Employer Routes */}
-      <Route
-        path="/employer"
-        element={
-          <ProtectedRoute allowedRoles={["employer"]}>
-            <DashboardLayout role="employer" />
-          </ProtectedRoute>
-        }
-      >
-        <Route index element={<Navigate to="dashboard" replace />} />
-        <Route path="dashboard" element={<EmployerDashboard />} />
+        {/* Institution Routes */}
         <Route
-          path="search"
-          element={<PlaceholderPage title="Search Candidates" />}
-        />
-        <Route
-          path="verifications"
-          element={<PlaceholderPage title="Verification History" />}
-        />
-        <Route
-          path="saved"
-          element={<PlaceholderPage title="Saved Candidates" />}
-        />
-        <Route path="reports" element={<PlaceholderPage title="Reports" />} />
-        <Route
-          path="profile"
-          element={<PlaceholderPage title="Employer Profile" />}
-        />
-      </Route>
+          path="/institution"
+          element={
+            <ProtectedRoute allowedRoles={["institution"]}>
+              <DashboardLayout role="institution" />
+            </ProtectedRoute>
+          }
+        >
+          <Route index element={<Navigate to="dashboard" replace />} />
+          <Route path="dashboard" element={<InstitutionDashboard />} />
+          <Route path="issue" element={<IssueCredential />} />
+          <Route path="credentials" element={<CredentialManagement />} />
+          <Route path="credentials/:id" element={<CredentialDetail />} />
+          <Route
+            path="profile"
+            element={<PlaceholderPage title="Institution Profile" />}
+          />
+          <Route
+            path="bulk-issue"
+            element={<PlaceholderPage title="Bulk Issue Credentials" />}
+          />
+          <Route
+            path="templates"
+            element={<PlaceholderPage title="Credential Templates" />}
+          />
+          <Route
+            path="analytics"
+            element={<PlaceholderPage title="Analytics" />}
+          />
+        </Route>
 
-      {/* Unauthorized */}
-      <Route
-        path="/unauthorized"
-        element={
-          <div style={{ padding: "4rem", textAlign: "center" }}>
-            <h2>Unauthorized</h2>
-            <p>You don't have permission to access this page.</p>
-          </div>
-        }
-      />
+        {/* Employer Routes */}
+        <Route
+          path="/employer"
+          element={
+            <ProtectedRoute allowedRoles={["employer"]}>
+              <DashboardLayout role="employer" />
+            </ProtectedRoute>
+          }
+        >
+          <Route index element={<Navigate to="dashboard" replace />} />
+          <Route path="dashboard" element={<EmployerDashboard />} />
+          <Route
+            path="search"
+            element={<PlaceholderPage title="Search Candidates" />}
+          />
+          <Route
+            path="verifications"
+            element={<PlaceholderPage title="Verification History" />}
+          />
+          <Route
+            path="saved"
+            element={<PlaceholderPage title="Saved Candidates" />}
+          />
+          <Route path="reports" element={<PlaceholderPage title="Reports" />} />
+          <Route
+            path="profile"
+            element={<PlaceholderPage title="Employer Profile" />}
+          />
+        </Route>
 
-      {/* 404 */}
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+        {/* Unauthorized */}
+        <Route
+          path="/unauthorized"
+          element={
+            <div style={{ padding: "4rem", textAlign: "center" }}>
+              <h2>Unauthorized</h2>
+              <p>You don't have permission to access this page.</p>
+            </div>
+          }
+        />
+
+        {/* 404 */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </Web3Provider>
   );
 }
 

@@ -5,7 +5,7 @@ A decentralized platform for issuing, verifying, and managing blockchain-verifie
 
 ## 🚀 Features
 
-- **Blockchain Verification**: Credentials stored on Polygon/Ethereum for immutable verification
+- **Blockchain Verification**: Credentials stored Ethereum Sepolia for immutable verification
 - **Role-Based Access**: Separate dashboards for Students, Institutions, and Employers
 - **AI-Powered Recommendations**: Skill matching and course recommendations (AI partner integration ready)
 - **IPFS Storage**: Decentralized metadata storage for credentials
@@ -61,7 +61,7 @@ Yogyata/
 
 ### External Integrations (Placeholder Ready)
 
-- Blockchain: Polygon/Ethereum (testnet)
+- Blockchain: Ethereum Sepolia (testnet)
 - Storage: IPFS
 - AI: DistilBERT NLP for skill matching
 

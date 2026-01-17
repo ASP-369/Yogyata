@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import axios from "axios";
 import {
   FiArrowLeft,
   FiUser,
@@ -11,30 +12,49 @@ import {
   FiTrash2,
   FiUpload,
   FiCheck,
+  FiCreditCard,
+  FiLink,
 } from "react-icons/fi";
 import { toast } from "react-toastify";
-import api from "../../services/api";
+import { supabase } from "../../config/supabase";
+import { useAuth } from "../../context/AuthContext";
+import { useWeb3 } from "../../context/Web3Context";
 import "./IssueCredential.css";
 
 const IssueCredential = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const {
+    isConnected,
+    isIssuer,
+    isWrongNetwork,
+    account,
+    connectWallet,
+    switchNetwork,
+    issueCredentialOnChain,
+    NETWORK_NAME
+  } = useWeb3();
+
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
-    recipientName: "",
-    recipientEmail: "",
-    recipientWallet: "",
+    studentName: "",
+    studentEmail: "",
+    studentAadhar: "",
+    studentWallet: "",
     title: "",
     description: "",
     type: "certificate",
     issueDate: new Date().toISOString().split("T")[0],
     expiryDate: "",
     skills: [],
+    grade: "",
     metadata: {},
     image: null,
   });
   const [newSkill, setNewSkill] = useState("");
-  const [previewMode, setPreviewMode] = useState(false);
+  const [txHash, setTxHash] = useState("");
+  const [blockchainCredentialId, setBlockchainCredentialId] = useState(null);
 
   const credentialTypes = [
     { value: "certificate", label: "Certificate" },
@@ -79,12 +99,16 @@ const IssueCredential = () => {
 
   const validateStep = (currentStep) => {
     if (currentStep === 1) {
-      if (!formData.recipientName || !formData.recipientEmail) {
-        toast.error("Please fill in recipient details");
+      if (!formData.studentName || !formData.studentEmail || !formData.studentAadhar) {
+        toast.error("Please fill in all required student details");
         return false;
       }
-      if (!/\S+@\S+\.\S+/.test(formData.recipientEmail)) {
+      if (!/\S+@\S+\.\S+/.test(formData.studentEmail)) {
         toast.error("Please enter a valid email address");
+        return false;
+      }
+      if (formData.studentAadhar.length !== 12) {
+        toast.error("Aadhar number must be 12 digits");
         return false;
       }
     }
@@ -107,31 +131,115 @@ const IssueCredential = () => {
     setStep((prev) => Math.max(prev - 1, 1));
   };
 
+  // Upload to Pinata IPFS
+  const uploadToPinata = async () => {
+    const data = {
+      pinataOptions: {
+        cidVersion: 1,
+      },
+      pinataMetadata: {
+        name: `Credential ${formData.studentAadhar} - ${formData.title}`,
+        keyvalues: {
+          issuer: account,
+          studentAadhar: formData.studentAadhar,
+          type: "Yogyata Credential"
+        }
+      },
+      pinataContent: {
+        studentName: formData.studentName,
+        studentEmail: formData.studentEmail,
+        studentAadhar: formData.studentAadhar,
+        studentWallet: formData.studentWallet,
+        title: formData.title,
+        description: formData.description,
+        type: formData.type,
+        issueDate: formData.issueDate,
+        expiryDate: formData.expiryDate,
+        skills: formData.skills,
+        grade: formData.grade,
+        metadata: formData.metadata,
+        issuer: account,
+        issuerId: user.id,
+        timestamp: Date.now(),
+      }
+    };
+
+    try {
+      const res = await axios.post(
+        "https://api.pinata.cloud/pinning/pinJSONToIPFS",
+        data,
+        {
+          headers: {
+            "Content-Type": "application/json",
+            pinata_api_key: process.env.REACT_APP_PINATA_API_KEY,
+            pinata_secret_api_key: process.env.REACT_APP_PINATA_SECRET_KEY,
+          },
+        }
+      );
+      return res.data.IpfsHash;
+    } catch (error) {
+      console.error("Error uploading to Pinata:", error);
+      throw new Error("Failed to upload credential data to IPFS");
+    }
+  };
+
   const handleSubmit = async () => {
+    if (!isConnected) {
+      toast.error("Please connect your wallet first");
+      return;
+    }
+
+    if (!isIssuer) {
+      toast.error("You are not registered as an issuer on the blockchain");
+      return;
+    }
+
+    // Check if Pinata keys are configured
+    if (!process.env.REACT_APP_PINATA_API_KEY || !process.env.REACT_APP_PINATA_SECRET_KEY) {
+      toast.error("IPFS configuration missing. Please check .env file");
+      return;
+    }
+
     try {
       setLoading(true);
 
-      const payload = {
-        recipient_email: formData.recipientEmail,
-        recipient_name: formData.recipientName,
-        recipient_wallet: formData.recipientWallet,
-        title: formData.title,
-        description: formData.description,
-        credential_type: formData.type,
-        issue_date: formData.issueDate,
-        expiry_date: formData.expiryDate || null,
-        skills: formData.skills,
-        metadata: formData.metadata,
-      };
+      // 1. Upload to IPFS
+      toast.info("Uploading credential data to IPFS...");
+      const ipfsHash = await uploadToPinata();
+      console.log("IPFS Hash:", ipfsHash);
 
-      const response = await api.post("/credentials", payload);
+      // 2. Issue credential on blockchain with IPFS hash
+      toast.info("Submitting to blockchain...");
+      // Pass the IPFS hash as the dataHash
+      const { tx, receipt, credentialId } = await issueCredentialOnChain(ipfsHash);
 
-      if (response.data.success) {
-        toast.success("Credential issued successfully!");
+      setTxHash(tx.hash);
+      setBlockchainCredentialId(credentialId);
+
+      // 3. Store in Supabase with the correct schema
+      // Table has: id (int8 - credential ID), ipfs_hash (text), aadhar (int8)
+      const { data: credData, error: credError } = await supabase
+        .from("student_creds")
+        .insert({
+          id: credentialId,  // Credential ID from smart contract
+          ipfs_hash: ipfsHash, // Store the IPFS hash
+          aadhar: parseInt(formData.studentAadhar, 10),  // Aadhar as int8
+        })
+        .select()
+        .single();
+
+      if (credError) throw credError;
+
+      toast.success("Credential issued successfully!");
+
+      // Delay navigation slightly to let user see success
+      setTimeout(() => {
         navigate("/institution/credentials");
-      }
+      }, 2000);
+
     } catch (error) {
-      toast.error(error.response?.data?.error || "Failed to issue credential");
+      console.error("Failed to issue credential:", error);
+      toast.error(error.message || "Failed to issue credential");
     } finally {
       setLoading(false);
     }
@@ -142,18 +250,92 @@ const IssueCredential = () => {
       {[1, 2, 3].map((s) => (
         <div
           key={s}
-          className={`step ${step >= s ? "active" : ""} ${
-            step > s ? "completed" : ""
-          }`}
+          className={`step ${step >= s ? "active" : ""} ${step > s ? "completed" : ""
+            }`}
         >
           <div className="step-number">{step > s ? <FiCheck /> : s}</div>
           <span className="step-label">
-            {s === 1 ? "Recipient" : s === 2 ? "Credential" : "Review"}
+            {s === 1 ? "Student Info" : s === 2 ? "Credential" : "Review"}
           </span>
         </div>
       ))}
     </div>
   );
+
+  // Wallet connection check
+  if (!isConnected) {
+    return (
+      <div className="issue-credential-page">
+        <div className="page-nav">
+          <button className="back-btn" onClick={() => navigate(-1)}>
+            <FiArrowLeft />
+            Back to Dashboard
+          </button>
+        </div>
+        <div className="connect-wallet-section">
+          <div className="wallet-prompt">
+            <div className="prompt-icon">🔗</div>
+            <h2>Connect Your Wallet</h2>
+            <p>You need to connect your MetaMask wallet to issue credentials on the blockchain.</p>
+            <button className="btn btn-primary" onClick={connectWallet}>
+              Connect Wallet
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Wrong network check
+  if (isWrongNetwork) {
+    return (
+      <div className="issue-credential-page">
+        <div className="page-nav">
+          <button className="back-btn" onClick={() => navigate(-1)}>
+            <FiArrowLeft />
+            Back to Dashboard
+          </button>
+        </div>
+        <div className="connect-wallet-section">
+          <div className="wallet-prompt">
+            <div className="prompt-icon">🔗</div>
+            <h2>Wrong Network</h2>
+            <p>Please switch to <strong>{NETWORK_NAME}</strong> network to interact with the contract.</p>
+            <p className="wallet-address-display">
+              Connected: {account?.slice(0, 6)}...{account?.slice(-4)}
+            </p>
+            <button className="btn btn-primary" onClick={switchNetwork}>
+              Switch to {NETWORK_NAME}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isIssuer) {
+    return (
+      <div className="issue-credential-page">
+        <div className="page-nav">
+          <button className="back-btn" onClick={() => navigate(-1)}>
+            <FiArrowLeft />
+            Back to Dashboard
+          </button>
+        </div>
+        <div className="connect-wallet-section">
+          <div className="wallet-prompt">
+            <div className="prompt-icon">⚠️</div>
+            <h2>Not Registered as Issuer</h2>
+            <p>Your wallet address is not registered as an issuer on the smart contract.</p>
+            <p className="wallet-address-display">
+              Connected: {account?.slice(0, 6)}...{account?.slice(-4)}
+            </p>
+            <p>Please contact the contract administrator or go to <a href="/admin">/admin</a> to register.</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="issue-credential-page">
@@ -162,6 +344,14 @@ const IssueCredential = () => {
           <FiArrowLeft />
           Back to Dashboard
         </button>
+        <div className="wallet-info">
+          <span className="connected-badge">
+            <FiLink /> Connected
+          </span>
+          <span className="wallet-address">
+            {account?.slice(0, 6)}...{account?.slice(-4)}
+          </span>
+        </div>
       </div>
 
       <div className="issue-container">
@@ -173,56 +363,77 @@ const IssueCredential = () => {
         {renderStepIndicator()}
 
         <div className="form-container">
-          {/* Step 1: Recipient Information */}
+          {/* Step 1: Student Information */}
           {step === 1 && (
             <div className="form-step">
               <h2>
                 <FiUser />
-                Recipient Information
+                Student Information
               </h2>
-              <p>Enter the details of the credential recipient</p>
+              <p>Enter the details of the student receiving this credential</p>
 
               <div className="form-group">
-                <label htmlFor="recipientName">Full Name *</label>
+                <label htmlFor="studentName">Full Name *</label>
                 <input
                   type="text"
-                  id="recipientName"
-                  name="recipientName"
-                  value={formData.recipientName}
+                  id="studentName"
+                  name="studentName"
+                  value={formData.studentName}
                   onChange={handleChange}
-                  placeholder="Enter recipient's full name"
+                  placeholder="Enter student's full name"
+                  style={{ color: "black" }}
                 />
               </div>
 
-              <div className="form-group">
-                <label htmlFor="recipientEmail">Email Address *</label>
-                <input
-                  type="email"
-                  id="recipientEmail"
-                  name="recipientEmail"
-                  value={formData.recipientEmail}
-                  onChange={handleChange}
-                  placeholder="Enter recipient's email"
-                />
-                <span className="helper-text">
-                  The recipient will receive a notification at this email
-                </span>
+              <div className="form-row">
+                <div className="form-group">
+                  <label htmlFor="studentEmail">
+                    <FiMail className="label-icon text-black" />
+                    Email Address *
+                  </label>
+                  <input
+                    type="email"
+                    id="studentEmail"
+                    name="studentEmail"
+                    value={formData.studentEmail}
+                    onChange={handleChange}
+                    placeholder="student@example.com"
+                    style={{ color: "black" }}
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="studentAadhar">
+                    <FiCreditCard className="label-icon text-black" />
+                    Aadhar Number *
+                  </label>
+                  <input
+                    type="text"
+                    id="studentAadhar"
+                    name="studentAadhar"
+                    value={formData.studentAadhar}
+                    onChange={handleChange}
+                    placeholder="12-digit Aadhar number"
+                    maxLength={12}
+                    style={{ color: "black" }}
+                  />
+                </div>
               </div>
 
               <div className="form-group">
-                <label htmlFor="recipientWallet">
+                <label htmlFor="studentWallet">
                   Wallet Address (Optional)
                 </label>
                 <input
                   type="text"
-                  id="recipientWallet"
-                  name="recipientWallet"
-                  value={formData.recipientWallet}
+                  id="studentWallet"
+                  name="studentWallet"
+                  value={formData.studentWallet}
                   onChange={handleChange}
                   placeholder="0x..."
                 />
                 <span className="helper-text">
-                  Ethereum/Polygon wallet address for direct credential
+                  Ethereum/Sepolia wallet address for direct credential
                   ownership
                 </span>
               </div>
@@ -248,6 +459,7 @@ const IssueCredential = () => {
                     value={formData.title}
                     onChange={handleChange}
                     placeholder="e.g., Web Development Certificate"
+                    style={{ color: "black" }}
                   />
                 </div>
 
@@ -277,6 +489,7 @@ const IssueCredential = () => {
                   onChange={handleChange}
                   placeholder="Describe what this credential represents..."
                   rows={4}
+                  style={{ color: "black" }}
                 />
               </div>
 
@@ -292,6 +505,7 @@ const IssueCredential = () => {
                     name="issueDate"
                     value={formData.issueDate}
                     onChange={handleChange}
+                    style={{ color: "black" }}
                   />
                 </div>
 
@@ -307,8 +521,22 @@ const IssueCredential = () => {
                     value={formData.expiryDate}
                     onChange={handleChange}
                     min={formData.issueDate}
+                    style={{ color: "black" }}
                   />
                 </div>
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="grade">Grade / Score (Optional)</label>
+                <input
+                  type="text"
+                  id="grade"
+                  name="grade"
+                  value={formData.grade}
+                  onChange={handleChange}
+                  placeholder="e.g., A+, 95%, Distinction"
+                  style={{ color: "black" }}
+                />
               </div>
 
               <div className="form-group">
@@ -383,35 +611,41 @@ const IssueCredential = () => {
                 <FiFileText />
                 Review & Issue
               </h2>
-              <p>Review the credential details before issuing</p>
+              <p>Review the credential details before issuing to the blockchain</p>
 
               <div className="review-card">
                 <div className="review-section">
-                  <h3>Recipient</h3>
+                  <h3>Student Information</h3>
                   <div className="review-row">
                     <span className="review-label">Name</span>
                     <span className="review-value">
-                      {formData.recipientName}
+                      {formData.studentName}
                     </span>
                   </div>
                   <div className="review-row">
                     <span className="review-label">Email</span>
                     <span className="review-value">
-                      {formData.recipientEmail}
+                      {formData.studentEmail}
                     </span>
                   </div>
-                  {formData.recipientWallet && (
+                  <div className="review-row">
+                    <span className="review-label">Aadhar</span>
+                    <span className="review-value">
+                      {formData.studentAadhar.slice(0, 4)}****{formData.studentAadhar.slice(-4)}
+                    </span>
+                  </div>
+                  {formData.studentWallet && (
                     <div className="review-row">
                       <span className="review-label">Wallet</span>
                       <span className="review-value wallet">
-                        {formData.recipientWallet}
+                        {formData.studentWallet}
                       </span>
                     </div>
                   )}
                 </div>
 
                 <div className="review-section">
-                  <h3>Credential</h3>
+                  <h3>Credential Details</h3>
                   <div className="review-row">
                     <span className="review-label">Title</span>
                     <span className="review-value">{formData.title}</span>
@@ -444,6 +678,12 @@ const IssueCredential = () => {
                       </span>
                     </div>
                   )}
+                  {formData.grade && (
+                    <div className="review-row">
+                      <span className="review-label">Grade</span>
+                      <span className="review-value">{formData.grade}</span>
+                    </div>
+                  )}
                 </div>
 
                 {formData.skills.length > 0 && (
@@ -460,14 +700,37 @@ const IssueCredential = () => {
                 )}
               </div>
 
-              <div className="issue-notice">
-                <FiCheck className="notice-icon" />
-                <p>
-                  This credential will be recorded on the blockchain and cannot
-                  be modified after issuance. The recipient will receive an
-                  email notification.
-                </p>
+              <div className="issue-notice blockchain">
+                <FiLink className="notice-icon" />
+                <div>
+                  <p className="notice-title">Blockchain Transaction</p>
+                  <p>
+                    This credential will be recorded on the blockchain. A transaction
+                    will be submitted to the smart contract. You will need to confirm
+                    this transaction in MetaMask.
+                  </p>
+                  <p className="notice-highlight">
+                    The credential will require approval from 2/3 of registered verifiers
+                    before it is fully verified.
+                  </p>
+                </div>
               </div>
+
+              {txHash && (
+                <div className="tx-success">
+                  <FiCheck className="success-icon" />
+                  <div className="tx-details">
+                    <span>Transaction Submitted!</span>
+                    <a
+                      href={`https://sepolia.etherscan.io/tx/${txHash}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      View on Etherscan
+                    </a>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -478,6 +741,7 @@ const IssueCredential = () => {
                 type="button"
                 className="btn btn-outline"
                 onClick={prevStep}
+                disabled={loading}
               >
                 Previous
               </button>
@@ -497,7 +761,17 @@ const IssueCredential = () => {
                 onClick={handleSubmit}
                 disabled={loading}
               >
-                {loading ? "Issuing..." : "Issue Credential"}
+                {loading ? (
+                  <>
+                    <span className="spinner-small"></span>
+                    Submitting to Blockchain...
+                  </>
+                ) : (
+                  <>
+                    <FiAward />
+                    Issue Credential on Blockchain
+                  </>
+                )}
               </button>
             )}
           </div>

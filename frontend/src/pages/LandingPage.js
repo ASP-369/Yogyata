@@ -49,7 +49,7 @@ const LandingPage = () => {
       icon: <FiShield />,
       title: "Tamper-Proof",
       description:
-        "Credentials stored on Polygon blockchain ensure authenticity and prevent fraud. Each certificate is immutable and permanently verifiable.",
+        "Credentials stored on Sepolia blockchain ensure authenticity and prevent fraud. Each certificate is immutable and permanently verifiable.",
     },
     {
       icon: <FiCpu />,
@@ -96,7 +96,7 @@ const LandingPage = () => {
           <div className="hero-content">
             <div className="hero-badge">
               <FiAward />
-              <span>Powered by Polygon Blockchain</span>
+              <span>Powered by Sepolia Blockchain</span>
             </div>
             <h1 className="hero-title">
               Blockchain-Verified

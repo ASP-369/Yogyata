@@ -268,7 +268,7 @@ const CredentialDetail = () => {
               <div className="blockchain-info">
                 <div className="info-row">
                   <span className="info-label">Network</span>
-                  <span className="info-value">Polygon Mainnet</span>
+                  <span className="info-value">Sepolia</span>
                 </div>
                 <div className="info-row">
                   <span className="info-label">Transaction Hash</span>
@@ -288,13 +288,13 @@ const CredentialDetail = () => {
                   </div>
                 </div>
                 <a
-                  href={`https://polygonscan.com/tx/${credential.blockchain_hash}`}
+                  href={`https://etherscan.io/tx/${credential.blockchain_hash}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="btn btn-outline btn-full"
                 >
                   <FiExternalLink />
-                  View on Polygonscan
+                  View on Etherscan
                 </a>
               </div>
             </div>

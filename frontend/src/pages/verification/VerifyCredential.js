@@ -270,13 +270,13 @@ const VerifyCredential = () => {
                             </div>
                           </div>
                           <a
-                            href={`https://polygonscan.com/tx/${result.blockchain_hash}`}
+                            href={`https://etherscan.io/tx/${result.blockchain_hash}`}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="blockchain-link"
                           >
                             <FiExternalLink />
-                            View on Polygonscan
+                            View on Etherscan
                           </a>
                         </div>
                       </div>

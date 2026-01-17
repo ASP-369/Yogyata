@@ -65,7 +65,7 @@ const Footer = () => {
                 <a href="#">Smart Contracts</a>
               </li>
               <li>
-                <a href="#">Polygon Explorer</a>
+                <a href="#">EtherScan Explorer</a>
               </li>
             </ul>
           </div>
@@ -92,7 +92,7 @@ const Footer = () => {
         <div className="footer-bottom">
           <p>&copy; {new Date().getFullYear()} Yogyata. All rights reserved.</p>
           <p className="footer-tech">
-            Powered by <span>Polygon</span> • <span>IPFS</span> •{" "}
+            Powered by <span>Sepolia</span> • <span>IPFS</span> •{" "}
             <span>React</span>
           </p>
         </div>

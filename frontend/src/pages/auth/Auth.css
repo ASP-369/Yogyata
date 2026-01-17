@@ -1,10 +1,8 @@
 .auth-page {
   min-height: 100vh;
-  background: linear-gradient(
-    135deg,
-    var(--gray-50) 0%,
-    var(--primary-50) 100%
-  );
+  background: linear-gradient(135deg,
+      var(--gray-50) 0%,
+      var(--primary-50) 100%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -64,18 +62,18 @@
 .auth-logo .logo-text {
   font-size: 1.5rem;
   font-weight: 700;
-  color: var(--gray-900);
+  color: #111827;
 }
 
 .auth-header h1 {
   font-size: 1.75rem;
   font-weight: 700;
-  color: var(--gray-900);
+  color: #111827;
   margin-bottom: 0.5rem;
 }
 
 .auth-header p {
-  color: var(--gray-600);
+  color: #4b5563;
 }
 
 .auth-error {
@@ -137,7 +135,7 @@
 .form-group label {
   font-size: 0.9375rem;
   font-weight: 500;
-  color: var(--gray-700);
+  color: #374151 !important;
 }
 
 .input-wrapper {
@@ -149,23 +147,25 @@
 .input-icon {
   position: absolute;
   left: 1rem;
-  color: var(--gray-400);
+  color: #9ca3af;
   font-size: 1.125rem;
 }
 
 .input-wrapper input {
   width: 100%;
   padding: 0.875rem 1rem 0.875rem 2.75rem;
-  border: 1px solid var(--gray-300);
-  border-radius: var(--radius);
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
   font-size: 1rem;
-  transition: var(--transition);
+  transition: all 0.2s ease;
+  color: #111827;
+  background: white;
 }
 
 .input-wrapper input:focus {
   outline: none;
-  border-color: var(--primary-500);
-  box-shadow: 0 0 0 3px var(--primary-100);
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
 }
 
 .password-toggle {
@@ -173,14 +173,14 @@
   right: 1rem;
   background: none;
   border: none;
-  color: var(--gray-400);
+  color: #9ca3af;
   font-size: 1.125rem;
   cursor: pointer;
   padding: 0.25rem;
 }
 
 .password-toggle:hover {
-  color: var(--gray-600);
+  color: #4b5563;
 }
 
 .form-row {
@@ -200,7 +200,7 @@
   align-items: flex-start;
   gap: 0.5rem;
   font-size: 0.875rem;
-  color: var(--gray-600);
+  color: #4b5563;
   cursor: pointer;
 }
 
@@ -209,12 +209,12 @@
 }
 
 .checkbox-label a {
-  color: var(--primary-600);
+  color: #4f46e5;
 }
 
 .forgot-link {
   font-size: 0.875rem;
-  color: var(--primary-600);
+  color: #4f46e5;
   font-weight: 500;
 }
 
@@ -223,11 +223,11 @@
   margin-bottom: 0.5rem;
 }
 
-.role-selector > label {
+.role-selector>label {
   display: block;
   font-size: 0.9375rem;
   font-weight: 500;
-  color: var(--gray-700);
+  color: #374151 !important;
   margin-bottom: 0.75rem;
 }
 
@@ -243,36 +243,36 @@
   align-items: center;
   gap: 0.5rem;
   padding: 1rem;
-  background-color: var(--gray-50);
-  border: 2px solid var(--gray-200);
-  border-radius: var(--radius-lg);
+  background-color: #f9fafb;
+  border: 2px solid #e5e7eb;
+  border-radius: 12px;
   cursor: pointer;
-  transition: var(--transition);
+  transition: all 0.2s ease;
 }
 
 .role-option:hover {
-  border-color: var(--primary-300);
-  background-color: var(--primary-50);
+  border-color: #a5b4fc;
+  background-color: #eef2ff;
 }
 
 .role-option.active {
-  border-color: var(--primary-500);
-  background-color: var(--primary-50);
+  border-color: #6366f1;
+  background-color: #eef2ff;
 }
 
 .role-icon {
   font-size: 1.5rem;
-  color: var(--gray-500);
+  color: #6b7280;
 }
 
 .role-option.active .role-icon {
-  color: var(--primary-600);
+  color: #4f46e5;
 }
 
 .role-label {
   font-size: 0.875rem;
   font-weight: 500;
-  color: var(--gray-700);
+  color: #374151;
 }
 
 /* Buttons */
