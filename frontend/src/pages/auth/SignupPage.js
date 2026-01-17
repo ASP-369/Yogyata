@@ -145,9 +145,8 @@ const SignupPage = () => {
                   <button
                     key={role.value}
                     type="button"
-                    className={`role-option ${
-                      formData.role === role.value ? "active" : ""
-                    }`}
+                    className={`role-option ${formData.role === role.value ? "active" : ""
+                      }`}
                     onClick={() =>
                       setFormData((prev) => ({ ...prev, role: role.value }))
                     }
@@ -171,6 +170,7 @@ const SignupPage = () => {
                   onChange={handleChange}
                   placeholder="John Doe"
                   required
+                  style={{ color: "black" }}
                 />
               </div>
             </div>
@@ -187,6 +187,7 @@ const SignupPage = () => {
                   onChange={handleChange}
                   placeholder="you@example.com"
                   required
+                  style={{ color: "black" }}
                 />
               </div>
             </div>
@@ -204,6 +205,7 @@ const SignupPage = () => {
                     onChange={handleChange}
                     placeholder="University of Example"
                     required
+                    style={{ color: "black" }}
                   />
                 </div>
               </div>
@@ -222,6 +224,7 @@ const SignupPage = () => {
                     onChange={handleChange}
                     placeholder="Acme Corp"
                     required
+                    style={{ color: "black" }}
                   />
                 </div>
               </div>
@@ -240,6 +243,7 @@ const SignupPage = () => {
                     onChange={handleChange}
                     placeholder="••••••••"
                     required
+                    style={{ color: "black" }}
                   />
                   <button
                     type="button"
@@ -263,6 +267,7 @@ const SignupPage = () => {
                     onChange={handleChange}
                     placeholder="••••••••"
                     required
+                    style={{ color: "black" }}
                   />
                 </div>
               </div>

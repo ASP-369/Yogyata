@@ -5,8 +5,8 @@
 CREATE TABLE IF NOT EXISTS student_creds (
     id BIGINT PRIMARY KEY,  -- Credential ID from smart contract (returned by issueCredential)
     ipfs_hash TEXT,         -- IPFS/Pinata hash for credential data (NULL for now)
-    aadhar BIGINT NOT NULL  -- Student's 12-digit Aadhar number
-    verified BOOLEAN DEFAULT NULL,
+    aadhar BIGINT NOT NULL,  -- Student's 12-digit Aadhar number
+    verified BOOLEAN DEFAULT NULL
 );
 
 -- Table for storing verification votes

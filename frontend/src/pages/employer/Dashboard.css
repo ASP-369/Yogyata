@@ -380,11 +380,12 @@
 .empty-state {
   text-align: center;
   padding: 2rem;
-  color: var(--gray-500);
+  color: black;
 }
 
 .empty-state p {
   margin-bottom: 1rem;
+  color: black;
 }
 
 @media (max-width: 1024px) {

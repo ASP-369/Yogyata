@@ -46,28 +46,40 @@ const CredentialManagement = () => {
 
     // Fetch credentials pending verification (for verifiers)
     const fetchPendingVerifications = useCallback(async () => {
+        console.log("Fetching pending verifications...", account);
         if (!account) return;
 
         try {
-            // Get all credentials with their votes
+            // Get credentials pending verification (verified is not true)
             const { data, error } = await supabase
                 .from("student_creds")
-                .select("*, credential_votes(*)");
+                .select("*")
+                .is("verified", null);
 
-            if (error) throw error;
+            if (error) {
+                console.error("Error fetching pending verifications:", error);
+                toast.error("Failed to fetch pending verifications");
+            } else {
+                // Filter out credentials this user has already voted on
+                const { data: myVotes, error: votesError } = await supabase
+                    .from("credential_votes")
+                    .select("id")
+                    .eq("voter_address", account);
 
-            // Filter out credentials already voted by this user
-            const pending = (data || []).filter((cred) => {
-                const hasVoted = cred.credential_votes?.some(
-                    (vote) => vote.voter_address?.toLowerCase() === account?.toLowerCase()
-                );
-                return !hasVoted;
-            });
+                if (votesError) {
+                    console.error("Error fetching user votes:", votesError);
+                }
 
-            setPendingVerifications(pending);
+                // If myVotes lookup failed, we just show all (or could show empty to be safe)
+                // Assuming 'id' in credential_votes matches 'student_creds.id'
+                const votedIds = new Set((myVotes || []).map(v => v.id));
+                const pending = (data || []).filter(c => !votedIds.has(c.id));
+
+                setPendingVerifications(pending);
+            }
         } catch (error) {
-            console.error("Error fetching pending verifications:", error);
-            toast.error("Failed to fetch pending verifications");
+            console.error("Error in fetchPendingVerifications:", error);
+            // toast.error("Failed to load verifications");
         }
     }, [account]);
 
@@ -80,55 +92,62 @@ const CredentialManagement = () => {
 
         try {
             // 1. Record vote in Supabase
+            // distinct column names as requested by user
             const { error: voteError } = await supabase.from("credential_votes").insert({
-                credential_id: credential.id,
+                id: credential.id,
                 voter_address: account,
-                vote: approve,
-                voted_at: new Date().toISOString(),
+                vote_value: approve,
             });
 
-            if (voteError) throw voteError;
+            if (voteError) {
+                console.error("Database vote error:", voteError);
+                throw voteError;
+            }
 
-            // 2. Check if we have 2/3 majority to finalize
-            const { data: allVotes, error: fetchError } = await supabase
-                .from("credential_votes")
-                .select("*")
-                .eq("credential_id", credential.id);
+            // 2. Submit Vote on Blockchain (using submitVotes)
+            toast.info("Submitting vote to blockchain...");
 
-            if (fetchError) throw fetchError;
+            try {
+                // Function: submitVotes(id, validatorsList[], votes[])
+                // We send a single vote for the current verifier
+                const tx = await contract.submitVotes(
+                    credential.id,
+                    [account], // validatorsList
+                    [approve]  // votes (bool array)
+                );
+                await tx.wait();
 
-            // Get total verifiers count from blockchain
-            const totalVP = await contract.totalVP();
-            const yesVotes = allVotes.filter((v) => v.vote === true);
+                // 3. Check if this vote finalized the credential
+                const isFinalized = await contract.isFinalized(credential.id);
 
-            // Calculate voting power of yes voters
-            let yesVotingPower = 0;
-            for (const vote of yesVotes) {
-                try {
-                    const vp = await contract.effectivePower(vote.voter_address);
-                    yesVotingPower += parseFloat(vp.toString());
-                } catch (e) {
-                    console.log("Failed to get VP for", vote.voter_address);
+                if (isFinalized) {
+                    // 4. Update Database
+                    const { error: updateError } = await supabase
+                        .from("student_creds")
+                        .update({ verified: true })
+                        .eq("id", credential.id);
+
+                    if (updateError) {
+                        console.error("Error updating verification status:", updateError);
+                    } else {
+                        toast.success("Vote submitted & Credential Finalized!");
+                    }
+                } else {
+                    toast.success("Vote submitted successfully on blockchain!");
                 }
+
+                // Refresh data
+                fetchPendingVerifications();
+                fetchIssuedCredentials();
+
+            } catch (chainError) {
+                console.error("Blockchain transaction failed:", chainError);
+                toast.error("Blockchain error: " + (chainError.reason || chainError.message || "Unknown error"));
             }
 
-            const totalVPNum = parseFloat(totalVP.toString());
-            const threshold = (totalVPNum * 2) / 3;
-
-            if (yesVotingPower >= threshold) {
-                // Credential has reached 2/3 majority!
-                // Admin will need to call finalizeCredential on blockchain
-                toast.success("Credential has reached 2/3 majority and is now verified!");
-            } else {
-                toast.success(approve ? "Vote recorded: Approved" : "Vote recorded: Rejected");
-            }
-
-            // Refresh data
-            fetchPendingVerifications();
-            fetchIssuedCredentials();
         } catch (error) {
-            console.error("Error voting:", error);
-            toast.error("Failed to record vote");
+            console.error("Error in handleVote:", error);
+            toast.error("Failed to process request");
         }
     };
 
@@ -156,10 +175,8 @@ const CredentialManagement = () => {
         const matchesSearch = aadharStr.includes(searchQuery) ||
             cred.id?.toString().includes(searchQuery);
 
-        // For status, check votes to determine if "verified"
-        const votes = cred.credential_votes || [];
-        const yesVotes = votes.filter((v) => v.vote).length;
-        const isVerified = yesVotes >= 2; // Simple threshold for now
+        // For status, rely on the checked database status
+        const isVerified = cred.verified;
 
         const matchesStatus =
             statusFilter === "all" ||
@@ -171,7 +188,8 @@ const CredentialManagement = () => {
     const getStatusBadge = (credential) => {
         const votes = credential.credential_votes || [];
         const yesVotes = votes.filter((v) => v.vote).length;
-        const isVerified = yesVotes >= 2; // Simple threshold
+        // Rely on DB status
+        const isVerified = credential.verified;
 
         if (isVerified) {
             return (
@@ -214,7 +232,7 @@ const CredentialManagement = () => {
             <div className="page-header">
                 <div className="header-content">
                     <h1>Credential Management</h1>
-                    <p>Issue, track, and verify blockchain credentials</p>
+                    <p>Issue, track, and verify s</p>
                 </div>
                 <div className="header-actions">
                     <button
@@ -297,10 +315,8 @@ const CredentialManagement = () => {
                                     <span className="col-aadhar">Aadhar</span>
                                     <span className="col-ipfs">IPFS Hash</span>
                                     <span className="col-status">Status</span>
-                                    <span className="col-votes">Votes</span>
                                 </div>
                                 {filteredCredentials.map((cred) => {
-                                    const { yesVotes, totalVotes } = getVoteProgress(cred);
                                     const aadharStr = cred.aadhar?.toString() || "";
                                     return (
                                         <div key={cred.id} className="table-row">
@@ -325,9 +341,6 @@ const CredentialManagement = () => {
                                                 )}
                                             </div>
                                             <div className="col-status">{getStatusBadge(cred)}</div>
-                                            <div className="col-votes">
-                                                <span className="vote-count">{yesVotes}/{totalVotes}</span>
-                                            </div>
                                         </div>
                                     );
                                 })}
@@ -355,7 +368,6 @@ const CredentialManagement = () => {
                         ) : pendingVerifications.length > 0 ? (
                             <div className="verification-cards">
                                 {pendingVerifications.map((cred) => {
-                                    const { yesVotes, totalVotes } = getVoteProgress(cred);
                                     const aadharStr = cred.aadhar?.toString() || "";
                                     return (
                                         <div key={cred.id} className="verification-card">
@@ -374,17 +386,17 @@ const CredentialManagement = () => {
                                                 </div>
                                                 <div className="info-row">
                                                     <label>IPFS Hash:</label>
-                                                    <span className="hash">{cred.ipfs_hash || "Not uploaded"}</span>
+                                                    <span className="hash">{cred.ipfs_hash.slice(0, 8) + "..." || "Not uploaded"}</span>
                                                 </div>
                                                 <div className="vote-progress">
                                                     <div className="progress-label">
                                                         <span>Verification Progress</span>
-                                                        <span>{yesVotes} approvals</span>
+                                                        <span>{cred.approvals} approvals</span>
                                                     </div>
                                                     <div className="progress-bar">
                                                         <div
                                                             className="progress-fill"
-                                                            style={{ width: `${totalVotes > 0 ? (yesVotes / totalVotes) * 100 : 0}%` }}
+                                                            style={{ width: `${cred.approvals > 0 ? (cred.approvals / cred.approvals) * 100 : 0}%` }}
                                                         ></div>
                                                     </div>
                                                 </div>

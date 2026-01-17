@@ -1,249 +1,662 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { ethers } from "ethers";
+import { toast } from "react-toastify";
 
 // Contract ABI
 const CONTRACT_ABI = [
   {
-    inputs: [],
-    stateMutability: "nonpayable",
-    type: "constructor",
+    "inputs": [],
+    "stateMutability": "nonpayable",
+    "type": "constructor"
   },
   {
-    anonymous: false,
-    inputs: [
-      { indexed: true, internalType: "uint256", name: "id", type: "uint256" },
-      { indexed: true, internalType: "address", name: "issuer", type: "address" },
-      { indexed: false, internalType: "address[]", name: "approvers", type: "address[]" },
-      { indexed: false, internalType: "string", name: "dataHash", type: "string" },
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "id",
+        "type": "uint256"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "issuer",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "bool",
+        "name": "approved",
+        "type": "bool"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "yesVP",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "totalVPAtStart",
+        "type": "uint256"
+      }
     ],
-    name: "CredentialFinalized",
-    type: "event",
+    "name": "CredentialFinalized",
+    "type": "event"
   },
   {
-    anonymous: false,
-    inputs: [
-      { indexed: true, internalType: "uint256", name: "id", type: "uint256" },
-      { indexed: true, internalType: "address", name: "issuer", type: "address" },
-      { indexed: false, internalType: "string", name: "dataHash", type: "string" },
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "id",
+        "type": "uint256"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "issuer",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "string",
+        "name": "dataHash",
+        "type": "string"
+      }
     ],
-    name: "CredentialIssued",
-    type: "event",
+    "name": "CredentialIssued",
+    "type": "event"
   },
   {
-    inputs: [{ internalType: "uint256", name: "amount", type: "uint256" }],
-    name: "depositStake",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    inputs: [
-      { internalType: "uint256", name: "id", type: "uint256" },
-      { internalType: "address[]", name: "approvers", type: "address[]" },
-      { internalType: "address[]", name: "toReward", type: "address[]" },
-      { internalType: "address[]", name: "toSlash", type: "address[]" },
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "issuer",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "rep",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "stake",
+        "type": "uint256"
+      }
     ],
-    name: "finalizeCredential",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
+    "name": "IssuerRegistered",
+    "type": "event"
   },
   {
-    inputs: [{ internalType: "string", name: "dataHash", type: "string" }],
-    name: "issueCredential",
-    outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    anonymous: false,
-    inputs: [
-      { indexed: true, internalType: "address", name: "issuer", type: "address" },
-      { indexed: false, internalType: "uint256", name: "rep", type: "uint256" },
-      { indexed: false, internalType: "uint256", name: "stake", type: "uint256" },
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "account",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "oldRep",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "newRep",
+        "type": "uint256"
+      }
     ],
-    name: "IssuerRegistered",
-    type: "event",
+    "name": "ReputationUpdated",
+    "type": "event"
   },
   {
-    inputs: [
-      { internalType: "address", name: "issuer", type: "address" },
-      { internalType: "uint256", name: "initialRep", type: "uint256" },
-      { internalType: "uint256", name: "initialStake", type: "uint256" },
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "account",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "oldStake",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "newStake",
+        "type": "uint256"
+      }
     ],
-    name: "registerIssuer",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
+    "name": "StakeUpdated",
+    "type": "event"
   },
   {
-    inputs: [
-      { internalType: "address", name: "verifier", type: "address" },
-      { internalType: "uint256", name: "initialRep", type: "uint256" },
-      { internalType: "uint256", name: "initialStake", type: "uint256" },
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "verifier",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "rep",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "stake",
+        "type": "uint256"
+      }
     ],
-    name: "registerVerifier",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
+    "name": "VerifierRegistered",
+    "type": "event"
   },
   {
-    anonymous: false,
-    inputs: [
-      { indexed: true, internalType: "address", name: "account", type: "address" },
-      { indexed: false, internalType: "uint256", name: "oldRep", type: "uint256" },
-      { indexed: false, internalType: "uint256", name: "newRep", type: "uint256" },
+    "inputs": [],
+    "name": "ISSUER_ROLE",
+    "outputs": [
+      {
+        "internalType": "bytes32",
+        "name": "",
+        "type": "bytes32"
+      }
     ],
-    name: "ReputationUpdated",
-    type: "event",
+    "stateMutability": "view",
+    "type": "function"
   },
   {
-    inputs: [
-      { internalType: "address", name: "validator", type: "address" },
-      { internalType: "uint256", name: "newRep", type: "uint256" },
+    "inputs": [],
+    "name": "VERIFIER_ROLE",
+    "outputs": [
+      {
+        "internalType": "bytes32",
+        "name": "",
+        "type": "bytes32"
+      }
     ],
-    name: "slashValidator",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
+    "stateMutability": "view",
+    "type": "function"
   },
   {
-    anonymous: false,
-    inputs: [
-      { indexed: true, internalType: "address", name: "account", type: "address" },
-      { indexed: false, internalType: "uint256", name: "oldStake", type: "uint256" },
-      { indexed: false, internalType: "uint256", name: "newStake", type: "uint256" },
+    "inputs": [],
+    "name": "admin",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
     ],
-    name: "StakeUpdated",
-    type: "event",
+    "stateMutability": "view",
+    "type": "function"
   },
   {
-    anonymous: false,
-    inputs: [
-      { indexed: true, internalType: "address", name: "verifier", type: "address" },
-      { indexed: false, internalType: "uint256", name: "rep", type: "uint256" },
-      { indexed: false, internalType: "uint256", name: "stake", type: "uint256" },
+    "inputs": [],
+    "name": "credentialId",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
     ],
-    name: "VerifierRegistered",
-    type: "event",
+    "stateMutability": "view",
+    "type": "function"
   },
   {
-    inputs: [{ internalType: "uint256", name: "amount", type: "uint256" }],
-    name: "withdrawStake",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    inputs: [],
-    name: "admin",
-    outputs: [{ internalType: "address", name: "", type: "address" }],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [],
-    name: "credentialId",
-    outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [{ internalType: "uint256", name: "", type: "uint256" }],
-    name: "credentials",
-    outputs: [
-      { internalType: "address", name: "issuer", type: "address" },
-      { internalType: "bool", name: "finalized", type: "bool" },
-      { internalType: "string", name: "dataHash", type: "string" },
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
     ],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [{ internalType: "address", name: "validator", type: "address" }],
-    name: "effectivePower",
-    outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [{ internalType: "address", name: "validator", type: "address" }],
-    name: "getValidatorInfo",
-    outputs: [
-      { internalType: "uint256", name: "rep", type: "uint256" },
-      { internalType: "uint256", name: "st", type: "uint256" },
-      { internalType: "uint256", name: "vp", type: "uint256" },
+    "name": "credentials",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "issuer",
+        "type": "address"
+      },
+      {
+        "internalType": "bool",
+        "name": "finalized",
+        "type": "bool"
+      },
+      {
+        "internalType": "string",
+        "name": "dataHash",
+        "type": "string"
+      }
     ],
-    stateMutability: "view",
-    type: "function",
+    "stateMutability": "view",
+    "type": "function"
   },
   {
-    inputs: [{ internalType: "uint256", name: "id", type: "uint256" }],
-    name: "isFinalized",
-    outputs: [{ internalType: "bool", name: "", type: "bool" }],
-    stateMutability: "view",
-    type: "function",
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "amount",
+        "type": "uint256"
+      }
+    ],
+    "name": "depositStake",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
   },
   {
-    inputs: [{ internalType: "address", name: "", type: "address" }],
-    name: "isIssuer",
-    outputs: [{ internalType: "bool", name: "", type: "bool" }],
-    stateMutability: "view",
-    type: "function",
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "validator",
+        "type": "address"
+      }
+    ],
+    "name": "effectivePower",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
   },
   {
-    inputs: [],
-    name: "ISSUER_ROLE",
-    outputs: [{ internalType: "bytes32", name: "", type: "bytes32" }],
-    stateMutability: "view",
-    type: "function",
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "id",
+        "type": "uint256"
+      }
+    ],
+    "name": "finalizeIfRejected",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
   },
   {
-    inputs: [{ internalType: "address", name: "", type: "address" }],
-    name: "isVerifier",
-    outputs: [{ internalType: "bool", name: "", type: "bool" }],
-    stateMutability: "view",
-    type: "function",
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "validator",
+        "type": "address"
+      }
+    ],
+    "name": "getValidatorInfo",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "rep",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "st",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "vp",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
   },
   {
-    inputs: [{ internalType: "address", name: "", type: "address" }],
-    name: "reputation",
-    outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
-    stateMutability: "view",
-    type: "function",
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "id",
+        "type": "uint256"
+      }
+    ],
+    "name": "getVoteInfo",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "yesVP",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "totalVPAtStart",
+        "type": "uint256"
+      },
+      {
+        "internalType": "bool",
+        "name": "finalized",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
   },
   {
-    inputs: [{ internalType: "address", name: "", type: "address" }],
-    name: "stake",
-    outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
-    stateMutability: "view",
-    type: "function",
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      },
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "name": "hasVoted",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
   },
   {
-    inputs: [],
-    name: "totalVP",
-    outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
-    stateMutability: "view",
-    type: "function",
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "id",
+        "type": "uint256"
+      }
+    ],
+    "name": "isFinalized",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
   },
   {
-    inputs: [{ internalType: "uint256", name: "", type: "uint256" }],
-    name: "validators",
-    outputs: [{ internalType: "address", name: "", type: "address" }],
-    stateMutability: "view",
-    type: "function",
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "name": "isIssuer",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
   },
   {
-    inputs: [],
-    name: "VERIFIER_ROLE",
-    outputs: [{ internalType: "bytes32", name: "", type: "bytes32" }],
-    stateMutability: "view",
-    type: "function",
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "name": "isVerifier",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
   },
+  {
+    "inputs": [
+      {
+        "internalType": "string",
+        "name": "dataHash",
+        "type": "string"
+      }
+    ],
+    "name": "issueCredential",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "issuer",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "initialRep",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "initialStake",
+        "type": "uint256"
+      }
+    ],
+    "name": "registerIssuer",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "verifier",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "initialRep",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "initialStake",
+        "type": "uint256"
+      }
+    ],
+    "name": "registerVerifier",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "name": "reputation",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "validator",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "newRep",
+        "type": "uint256"
+      }
+    ],
+    "name": "slashValidator",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "name": "stake",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "id",
+        "type": "uint256"
+      },
+      {
+        "internalType": "address[]",
+        "name": "validatorsList",
+        "type": "address[]"
+      },
+      {
+        "internalType": "bool[]",
+        "name": "votes",
+        "type": "bool[]"
+      }
+    ],
+    "name": "submitVotes",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "totalVP",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "name": "validators",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "name": "votesInfo",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "yesVP",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "totalVPAtStart",
+        "type": "uint256"
+      },
+      {
+        "internalType": "bool",
+        "name": "finalized",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "amount",
+        "type": "uint256"
+      }
+    ],
+    "name": "withdrawStake",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  }
 ];
-
 const CONTRACT_ADDRESS = process.env.REACT_APP_CONTRACT_ADDRESS;
-console.log("Contract Address:", CONTRACT_ADDRESS);
+console.log("Contract Address is:", CONTRACT_ADDRESS);
 const Web3Context = createContext({});
 
 export const useWeb3 = () => {
@@ -363,6 +776,10 @@ export const Web3Provider = ({ children }) => {
           });
         } catch (roleError) {
           console.error("Failed to check roles on connect:", roleError);
+          // Detect mismatch
+          if (roleError.code === "CALL_EXCEPTION") {
+            toast.warn("Contract Mismatch: The ABI does not match the deployed contract. Please check your address.");
+          }
         }
       }
 
@@ -420,6 +837,10 @@ export const Web3Provider = ({ children }) => {
       console.log("Roles updated - isIssuer:", issuer, "isVerifier:", verifier);
     } catch (error) {
       console.error("Failed to check roles:", error);
+      if (error.code === "CALL_EXCEPTION") {
+        // Toast already shown in connect, but good to log specific warning
+        console.warn("Contract ABI mismatch detected");
+      }
     }
   }, [contract, account]);
 
