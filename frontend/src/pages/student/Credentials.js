@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from "react";
 import { FiSearch, FiFilter, FiGrid, FiList } from "react-icons/fi";
-import api from "../../services/api";
+import { supabase } from "../../config/supabase";
+import { useAuth } from "../../context/AuthContext";
 import CredentialCard from "../../components/credentials/CredentialCard";
 import "./Credentials.css";
 
 const StudentCredentials = () => {
+  const { user } = useAuth();
   const [credentials, setCredentials] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -24,25 +26,65 @@ const StudentCredentials = () => {
   const fetchCredentials = async () => {
     try {
       setLoading(true);
-      const params = new URLSearchParams({
-        page: pagination.page,
-        limit: pagination.limit,
-      });
+      if (!user) return;
 
-      if (filter !== "all") {
-        params.append("status", filter);
+      // 1. Get Student Aadhar
+      const { data: studentData, error: studentError } = await supabase
+        .from("student")
+        .select("aadhar")
+        .eq("id", user.id)
+        .single();
+
+      if (studentError) {
+        console.error("Error fetching student profile:", studentError);
+        // Toast?
+        return;
       }
 
-      const response = await api.get(`/students/credentials?${params}`);
+      if (!studentData?.aadhar) {
+        console.warn("No aadhar linked to student");
+        return;
+      }
 
-      if (response.data.success) {
-        setCredentials(response.data.data);
-        setPagination((prev) => ({
-          ...prev,
-          total: response.data.pagination.total,
-          totalPages: response.data.pagination.totalPages,
+      // 2. Fetch Credentials
+      let query = supabase
+        .from("student_creds")
+        .select("*")
+        .eq("aadhar", studentData.aadhar);
+
+      // Client-side filtering for status if needed, or query params
+      // Since map status logic is custom:
+      // verified -> verified columns
+      // pending -> verified is null/false
+      if (filter === "verified") {
+        query = query.eq("verified", true);
+      } else if (filter === "pending_blockchain") {
+        query = query.is("verified", null);
+        // Or .not("verified", "eq", true) ?
+        // 'verified' is boolean? if false is it rejected? 
+        // Assuming null is pending, true is verified.
+      }
+
+      const { data: creds, error: credsError } = await query;
+
+      if (credsError) {
+        console.error("Error fetching credentials:", credsError);
+        setCredentials([]);
+      } else {
+        const mapped = (creds || []).map(c => ({
+          id: c.id,
+          title: `Credential #${c.id}`,
+          issuer_name: "Issued via Yogyata",
+          status: c.verified ? "verified" : "pending_blockchain",
+          issue_date: new Date().toISOString(),
+          blockchain_hash: c.ipfs_hash, // Display IPFS hash as requested
+          description: `IPFS: ${c.ipfs_hash}`,
+          skills: []
         }));
+        setCredentials(mapped);
+        setPagination(prev => ({ ...prev, total: mapped.length }));
       }
+
     } catch (error) {
       console.error("Failed to fetch credentials:", error);
     } finally {
