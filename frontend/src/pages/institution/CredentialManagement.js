@@ -292,7 +292,7 @@ const CredentialManagement = () => {
                             </div>
                         ) : filteredCredentials.length > 0 ? (
                             <div className="credentials-table">
-                                <div className="table-header">
+                                <div className="table-header text-black">
                                     <span className="col-credential">Credential ID</span>
                                     <span className="col-aadhar">Aadhar</span>
                                     <span className="col-ipfs">IPFS Hash</span>
