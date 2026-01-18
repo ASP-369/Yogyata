@@ -12,6 +12,10 @@ import {
     FiSettings,
     FiExternalLink,
     FiCopy,
+    FiTrendingUp,
+    FiDollarSign,
+    FiAlertTriangle,
+    FiSearch,
 } from "react-icons/fi";
 import { toast } from "react-toastify";
 import { ethers } from "ethers";
@@ -43,6 +47,16 @@ const AdminPanel = () => {
     const [verifierRep, setVerifierRep] = useState("100");
     const [verifierStake, setVerifierStake] = useState("100");
     const [registeringVerifier, setRegisteringVerifier] = useState(false);
+
+    // Validator Management States
+    const [stakeAmount, setStakeAmount] = useState("");
+    const [staking, setStaking] = useState(false);
+
+    const [targetValidator, setTargetValidator] = useState("");
+    const [newReputation, setNewReputation] = useState("");
+    const [slashing, setSlashing] = useState(false);
+    const [validatorStats, setValidatorStats] = useState(null);
+    const [loadingStats, setLoadingStats] = useState(false);
 
     // Check if current user is admin
     const checkAdmin = useCallback(async () => {
@@ -144,6 +158,87 @@ const AdminPanel = () => {
             }
         } finally {
             setRegisteringVerifier(false);
+        }
+    };
+
+    // Stake Management
+    const handleStakeOperation = async (isDeposit) => {
+        if (!stakeAmount || parseFloat(stakeAmount) <= 0) {
+            toast.error("Please enter a valid amount");
+            return;
+        }
+
+        try {
+            setStaking(true);
+            const amountWei = ethers.utils.parseEther(stakeAmount);
+
+            let tx;
+            if (isDeposit) {
+                tx = await contract.depositStake(amountWei);
+            } else {
+                tx = await contract.withdrawStake(amountWei);
+            }
+
+            toast.info("Transaction submitted...");
+            await tx.wait();
+            toast.success(`Successfully ${isDeposit ? 'deposited' : 'withdrawn'} stake!`);
+
+            setStakeAmount("");
+            checkAdmin();
+        } catch (error) {
+            console.error("Staking error:", error);
+            toast.error(error.reason || "Staking operation failed");
+        } finally {
+            setStaking(false);
+        }
+    };
+
+    // Slash/Update Reputation
+    const handleSlashValidator = async (e) => {
+        e.preventDefault();
+        if (!ethers.utils.isAddress(targetValidator)) {
+            toast.error("Invalid info");
+            return;
+        }
+
+        try {
+            setSlashing(true);
+            const repWei = ethers.utils.parseEther(newReputation);
+
+            const tx = await contract.slashValidator(targetValidator, repWei);
+            toast.info("Updating reputation...");
+
+            await tx.wait();
+            toast.success("Validator reputation updated successfully!");
+
+            setNewReputation("");
+            fetchValidatorStats(targetValidator); // Refresh stats
+            checkAdmin();
+        } catch (error) {
+            console.error("Slash error:", error);
+            toast.error(error.reason || "Failed to update reputation");
+        } finally {
+            setSlashing(false);
+        }
+    };
+
+    // Fetch specific validator stats
+    const fetchValidatorStats = async (address) => {
+        if (!ethers.utils.isAddress(address) || !contract) return;
+
+        try {
+            setLoadingStats(true);
+            const info = await contract.getValidatorInfo(address);
+            setValidatorStats({
+                rep: ethers.utils.formatEther(info.rep),
+                stake: ethers.utils.formatEther(info.st),
+                vp: ethers.utils.formatEther(info.vp)
+            });
+        } catch (error) {
+            console.error("Error fetching stats:", error);
+            setValidatorStats(null);
+        } finally {
+            setLoadingStats(false);
         }
     };
 
@@ -397,6 +492,121 @@ const AdminPanel = () => {
                         </button>
                     </form>
                 </div>
+
+
+                {/* Stake Management */}
+                <div className="form-card">
+                    <div className="form-header">
+                        <FiTrendingUp className="form-icon stake" />
+                        <div>
+                            <h2>Manage My Stake</h2>
+                            <p>Deposit or withdraw your validator stake</p>
+                        </div>
+                    </div>
+
+                    <div className="form-group">
+                        <label>Amount (ETH)</label>
+                        <input
+                            type="number"
+                            value={stakeAmount}
+                            onChange={(e) => setStakeAmount(e.target.value)}
+                            placeholder="0.0"
+                            min="0"
+                        />
+                    </div>
+
+                    <div className="form-row">
+                        <button
+                            type="button"
+                            className="btn btn-primary"
+                            onClick={() => handleStakeOperation(true)}
+                            disabled={staking}
+                            style={{ flex: 1 }}
+                        >
+                            <FiDollarSign /> Deposit
+                        </button>
+                        <button
+                            type="button"
+                            className="btn btn-outline"
+                            onClick={() => handleStakeOperation(false)}
+                            disabled={staking}
+                            style={{ flex: 1 }}
+                        >
+                            <FiRefreshCw /> Withdraw
+                        </button>
+                    </div>
+                </div>
+
+                {/* Reputation Management / Slashing */}
+                <div className="form-card">
+                    <div className="form-header">
+                        <FiAlertTriangle className="form-icon slasher" />
+                        <div>
+                            <h2>Update Reputation</h2>
+                            <p>Slash or reward other validators (Governance)</p>
+                        </div>
+                    </div>
+
+                    <form onSubmit={handleSlashValidator}>
+                        <div className="form-group">
+                            <label>Target Validator Address</label>
+                            <div className="input-with-action">
+                                <input
+                                    type="text"
+                                    value={targetValidator}
+                                    onChange={(e) => {
+                                        setTargetValidator(e.target.value);
+                                        if (ethers.utils.isAddress(e.target.value)) {
+                                            fetchValidatorStats(e.target.value);
+                                        } else {
+                                            setValidatorStats(null);
+                                        }
+                                    }}
+                                    placeholder="0x..."
+                                    required
+                                />
+                                <button
+                                    type="button"
+                                    className="action-btn"
+                                    onClick={() => fetchValidatorStats(targetValidator)}
+                                    title="Check Stats"
+                                >
+                                    <FiSearch />
+                                </button>
+                            </div>
+                        </div>
+
+                        {validatorStats && (
+                            <div className="stats-mini-panel">
+                                <div className="stat-row">
+                                    <span>Current Rep:</span> <strong>{parseFloat(validatorStats.rep).toFixed(2)}</strong>
+                                </div>
+                                <div className="stat-row">
+                                    <span>Current Stake:</span> <strong>{parseFloat(validatorStats.stake).toFixed(2)}</strong>
+                                </div>
+                            </div>
+                        )}
+
+                        <div className="form-group">
+                            <label>New Reputation Amount</label>
+                            <input
+                                type="number"
+                                value={newReputation}
+                                onChange={(e) => setNewReputation(e.target.value)}
+                                placeholder="Enter new reputation value"
+                                required
+                            />
+                        </div>
+
+                        <button
+                            type="submit"
+                            className="btn btn-danger"
+                            disabled={slashing}
+                        >
+                            {slashing ? "Updating..." : "Update Reputation"}
+                        </button>
+                    </form>
+                </div>
             </div>
 
             {/* Quick Register Self */}
@@ -424,7 +634,7 @@ const AdminPanel = () => {
                     </button>
                 </div>
             </div>
-        </div>
+        </div >
     );
 };
 
