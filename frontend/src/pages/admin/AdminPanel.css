@@ -2,6 +2,7 @@
     max-width: 1000px;
     margin: 0 auto;
     padding: 0 1rem;
+    color: black;
 }
 
 /* Page Navigation */
@@ -27,7 +28,7 @@
 }
 
 .back-btn:hover {
-    color: #fff;
+    color: black;
 }
 
 .admin-badge {
@@ -56,12 +57,12 @@
     gap: 0.75rem;
     font-size: 2rem;
     font-weight: 700;
-    color: #fff;
+    color: black;
     margin-bottom: 0.5rem;
 }
 
 .admin-header p {
-    color: rgba(255, 255, 255, 0.6);
+    color: black;
     font-size: 1rem;
 }
 
@@ -91,7 +92,7 @@
 }
 
 .info-value {
-    color: #fff;
+    color: black;
     font-weight: 500;
     display: flex;
     align-items: center;
@@ -109,7 +110,7 @@
 }
 
 .external-link {
-    color: rgba(255, 255, 255, 0.5);
+    color: #a78bfa;
     transition: color 0.3s ease;
 }
 
@@ -127,14 +128,14 @@
 
 .form-card {
     background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.02) 100%);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid #a78bfa;
     border-radius: 20px;
     padding: 1.75rem;
     transition: all 0.3s ease;
 }
 
 .form-card:hover {
-    border-color: rgba(255, 255, 255, 0.15);
+    border-color: black;
 }
 
 .form-header {
@@ -162,14 +163,14 @@
 }
 
 .form-header h2 {
-    color: #fff;
+    color: black;
     font-size: 1.15rem;
     font-weight: 600;
     margin: 0 0 0.25rem 0;
 }
 
 .form-header p {
-    color: rgba(255, 255, 255, 0.5);
+    color: black;
     font-size: 0.85rem;
     margin: 0;
 }
@@ -180,7 +181,7 @@
 
 .form-group label {
     display: block;
-    color: rgba(255, 255, 255, 0.7);
+    color: black;
     font-size: 0.85rem;
     font-weight: 500;
     margin-bottom: 0.5rem;
@@ -189,21 +190,21 @@
 .form-group input {
     width: 100%;
     padding: 0.75rem 1rem;
-    background: rgba(255, 255, 255, 0.05);
+    background: #fff;
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 10px;
-    color: #fff;
+    color: black;
     font-size: 0.95rem;
     transition: all 0.3s ease;
 }
 
 .form-group input::placeholder {
-    color: rgba(255, 255, 255, 0.3);
+    color: black;
 }
 
 .form-group input:focus {
     outline: none;
-    border-color: rgba(167, 139, 250, 0.5);
+    border-color: black;
     background: rgba(255, 255, 255, 0.08);
 }
 
