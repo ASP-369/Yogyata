@@ -61,7 +61,7 @@ const StudentCredentials = () => {
       } else if (filter === "pending_blockchain") {
         query = query.is("verified", null);
         // Or .not("verified", "eq", true) ?
-        // 'verified' is boolean? if false is it rejected? 
+        // 'verified' is boolean? if false is it rejected?
         // Assuming null is pending, true is verified.
       }
 
@@ -71,7 +71,7 @@ const StudentCredentials = () => {
         console.error("Error fetching credentials:", credsError);
         setCredentials([]);
       } else {
-        const mapped = (creds || []).map(c => ({
+        const mapped = (creds || []).map((c) => ({
           id: c.id,
           title: `Credential #${c.id}`,
           issuer_name: "Issued via Yogyata",
@@ -79,12 +79,11 @@ const StudentCredentials = () => {
           issue_date: new Date().toISOString(),
           blockchain_hash: c.ipfs_hash, // Display IPFS hash as requested
           description: `IPFS: ${c.ipfs_hash}`,
-          skills: []
+          skills: [],
         }));
         setCredentials(mapped);
-        setPagination(prev => ({ ...prev, total: mapped.length }));
+        setPagination((prev) => ({ ...prev, total: mapped.length }));
       }
-
     } catch (error) {
       console.error("Failed to fetch credentials:", error);
     } finally {
@@ -95,7 +94,7 @@ const StudentCredentials = () => {
   const filteredCredentials = credentials.filter(
     (cred) =>
       cred.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      cred.issuer_name?.toLowerCase().includes(searchQuery.toLowerCase())
+      cred.issuer_name?.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
   const filterOptions = [
@@ -167,6 +166,7 @@ const StudentCredentials = () => {
                 key={credential.id}
                 credential={credential}
                 compact={viewMode === "list"}
+                basePath="/student/credentials"
               />
             ))}
           </div>
