@@ -207,7 +207,11 @@ const StudentDashboard = () => {
         ) : recentCredentials.length > 0 ? (
           <div className="credentials-grid">
             {recentCredentials.map((credential) => (
-              <CredentialCard key={credential.id} credential={credential} />
+              <CredentialCard
+                key={credential.id}
+                credential={credential}
+                basePath="/student/credentials"
+              />
             ))}
           </div>
         ) : (
