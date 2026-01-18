@@ -1,10 +1,8 @@
 .auth-page {
   min-height: 100vh;
-  background: linear-gradient(
-    135deg,
-    var(--gray-50) 0%,
-    var(--primary-50) 100%
-  );
+  background: linear-gradient(135deg,
+      var(--gray-50) 0%,
+      var(--primary-50) 100%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -172,7 +170,8 @@
 }
 
 .input-wrapper input::placeholder {
-  color: #9ca3af;
+  color: #9ca3af !important;
+  opacity: 0.6;
 }
 
 .input-wrapper input:focus {
@@ -236,7 +235,7 @@
   margin-bottom: 0.5rem;
 }
 
-.role-selector > label {
+.role-selector>label {
   display: block;
   font-size: 0.9375rem;
   font-weight: 500;
@@ -318,6 +317,52 @@
 .wallet-icon {
   width: 24px;
   height: 24px;
+}
+
+/* Wallet Link Section (Signup) */
+.wallet-link-section {
+  margin-bottom: 1rem;
+}
+
+.wallet-link-section>label {
+  display: block;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: #374151;
+  margin-bottom: 0.75rem;
+}
+
+.wallet-connected {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.875rem 1rem;
+  background-color: #f0fdf4;
+  border: 1px solid #86efac;
+  border-radius: 8px;
+}
+
+.wallet-connected .wallet-address {
+  font-family: monospace;
+  font-size: 0.95rem;
+  color: #166534;
+  font-weight: 500;
+}
+
+.btn-sm {
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+}
+
+.btn-outline {
+  background: transparent;
+  border: 1px solid #d1d5db;
+  color: #374151;
+}
+
+.btn-outline:hover {
+  background-color: #f3f4f6;
+  border-color: #9ca3af;
 }
 
 .auth-divider {

@@ -3,6 +3,7 @@ import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { FiMail, FiLock, FiEye, FiEyeOff, FiAlertCircle } from "react-icons/fi";
 import { toast } from "react-toastify";
+import { supabase } from "../../config/supabase";
 import "./Auth.css";
 
 const LoginPage = () => {
@@ -11,6 +12,7 @@ const LoginPage = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [walletLoading, setWalletLoading] = useState(false);
 
   const { signIn, user } = useAuth();
   const navigate = useNavigate();
@@ -45,20 +47,55 @@ const LoginPage = () => {
     }
   };
 
-  // Web3 wallet connection placeholder
+  // MetaMask Login - Check if wallet is linked to an account
   const handleWalletConnect = async () => {
-    if (typeof window.ethereum !== "undefined") {
-      try {
-        const accounts = await window.ethereum.request({
-          method: "eth_requestAccounts",
-        });
-        console.log("Connected wallet:", accounts[0]);
-        toast.info("Wallet connected! Web3 auth coming soon.");
-      } catch (err) {
+    if (typeof window.ethereum === "undefined") {
+      toast.warning("Please install MetaMask to use Web3 login");
+      return;
+    }
+
+    try {
+      setWalletLoading(true);
+      setError("");
+
+      // Request wallet connection
+      const accounts = await window.ethereum.request({
+        method: "eth_requestAccounts",
+      });
+      const walletAddress = accounts[0].toLowerCase();
+
+      // Query Supabase to find user with this wallet address
+      const { data: users, error: queryError } = await supabase
+        .from("auth.users")
+        .select("id, email, raw_user_meta_data")
+        .eq("raw_user_meta_data->>wallet_address", walletAddress)
+        .single();
+
+      if (queryError || !users) {
+        // Try alternative: search in auth metadata via RPC or direct query
+        // Since we can't directly query auth.users, we'll use a workaround
+        toast.info("Wallet connected! Checking for linked account...");
+
+        // For now, show user their connected wallet and prompt for email
+        toast.warning(
+          `Wallet ${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)} is connected. Please sign in with your email to link this wallet, or create an account with this wallet.`
+        );
+        return;
+      }
+
+      // If user found, we could implement a custom sign-in flow
+      // For security, we'd need a backend verification
+      toast.success("Wallet recognized! Please complete sign-in with your email.");
+
+    } catch (err) {
+      console.error("Wallet login failed:", err);
+      if (err.code === 4001) {
+        toast.error("Wallet connection was rejected");
+      } else {
         toast.error("Failed to connect wallet");
       }
-    } else {
-      toast.warning("Please install MetaMask to use Web3 login");
+    } finally {
+      setWalletLoading(false);
     }
   };
 
@@ -147,13 +184,14 @@ const LoginPage = () => {
             type="button"
             className="btn btn-wallet"
             onClick={handleWalletConnect}
+            disabled={walletLoading}
           >
             <img
               src="https://upload.wikimedia.org/wikipedia/commons/3/36/MetaMask_Fox.svg"
               alt="MetaMask"
               className="wallet-icon"
             />
-            Connect with MetaMask
+            {walletLoading ? "Connecting..." : "Connect with MetaMask"}
           </button>
 
           <p className="auth-footer">

@@ -28,10 +28,12 @@ const SignupPage = () => {
     institutionName: "",
     companyName: "",
     aadhar: "",
+    walletAddress: "",
   });
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [connectingWallet, setConnectingWallet] = useState(false);
 
   const { signUp, user } = useAuth();
   const navigate = useNavigate();
@@ -72,6 +74,7 @@ const SignupPage = () => {
           formData.role === "institution" ? formData.institutionName : null,
         employer_company:
           formData.role === "employer" ? formData.companyName : null,
+        wallet_address: formData.walletAddress || null,
       };
 
       const { data, error } = await signUp(
@@ -112,6 +115,28 @@ const SignupPage = () => {
       toast.error("An unexpected error occurred");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleConnectWallet = async () => {
+    if (typeof window.ethereum === "undefined") {
+      toast.warning("Please install MetaMask to link your wallet");
+      return;
+    }
+
+    try {
+      setConnectingWallet(true);
+      const accounts = await window.ethereum.request({
+        method: "eth_requestAccounts",
+      });
+      const walletAddress = accounts[0];
+      setFormData((prev) => ({ ...prev, walletAddress }));
+      toast.success("Wallet connected successfully!");
+    } catch (err) {
+      console.error("Wallet connection failed:", err);
+      toast.error("Failed to connect wallet");
+    } finally {
+      setConnectingWallet(false);
     }
   };
 
@@ -320,6 +345,39 @@ const SignupPage = () => {
                   <a href="#">Privacy Policy</a>
                 </span>
               </label>
+            </div>
+
+            {/* MetaMask Wallet Link (Optional) */}
+            <div className="wallet-link-section">
+              <label>Link MetaMask Wallet (Optional)</label>
+              {formData.walletAddress ? (
+                <div className="wallet-connected">
+                  <span className="wallet-address">
+                    {formData.walletAddress.slice(0, 6)}...{formData.walletAddress.slice(-4)}
+                  </span>
+                  <button
+                    type="button"
+                    className="btn btn-outline btn-sm"
+                    onClick={() => setFormData((prev) => ({ ...prev, walletAddress: "" }))}
+                  >
+                    Disconnect
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  className="btn btn-wallet"
+                  onClick={handleConnectWallet}
+                  disabled={connectingWallet}
+                >
+                  <img
+                    src="https://upload.wikimedia.org/wikipedia/commons/3/36/MetaMask_Fox.svg"
+                    alt="MetaMask"
+                    className="wallet-icon"
+                  />
+                  {connectingWallet ? "Connecting..." : "Connect MetaMask"}
+                </button>
+              )}
             </div>
 
             <button
