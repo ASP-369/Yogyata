@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useParams, useNavigate, Link } from "react-router-dom";
+import { useParams, useNavigate, Link, useLocation } from "react-router-dom";
 import {
   FiArrowLeft,
   FiDownload,
@@ -13,14 +13,20 @@ import {
 import { QRCodeSVG } from "qrcode.react";
 import { toast } from "react-toastify";
 import api from "../../services/api";
+import { supabase } from "../../config/supabase";
 import "./CredentialDetail.css";
 
 const CredentialDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const [credential, setCredential] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showShareModal, setShowShareModal] = useState(false);
+  const [ipfsData, setIpfsData] = useState(null);
+
+  // Determine if we're in student context
+  const isStudentRoute = location.pathname.includes("/student/");
 
   useEffect(() => {
     fetchCredential();
@@ -29,16 +35,77 @@ const CredentialDetail = () => {
   const fetchCredential = async () => {
     try {
       setLoading(true);
-      const response = await api.get(`/credentials/${id}`);
-      if (response.data.success) {
-        setCredential(response.data.data);
+
+      if (isStudentRoute) {
+        // Fetch from student_creds table for student routes
+        const { data, error } = await supabase
+          .from("student_creds")
+          .select("*")
+          .eq("id", id)
+          .single();
+
+        if (error) {
+          console.error("Failed to fetch credential:", error);
+          toast.error("Credential not found");
+          return;
+        }
+
+        // Map student_creds data to credential format
+        const mappedCredential = {
+          id: data.id,
+          title: `Credential #${data.id}`,
+          issuer_name: "Issued via Yogyata",
+          description: `This credential has been issued and stored on IPFS.`,
+          status: data.verified ? "verified" : "pending_blockchain",
+          issue_date: data.created_at || new Date().toISOString(),
+          ipfs_hash: data.ipfs_hash,
+          blockchain_hash: data.ipfs_hash,
+          recipient_aadhar: data.aadhar,
+        };
+
+        setCredential(mappedCredential);
+
+        // Try to fetch IPFS data if available
+        if (data.ipfs_hash) {
+          fetchIpfsData(data.ipfs_hash);
+        }
+      } else {
+        // Original API fetch for institution/other routes
+        const response = await api.get(`/credentials/${id}`);
+        if (response.data.success) {
+          setCredential(response.data.data);
+        }
       }
     } catch (error) {
       console.error("Failed to fetch credential:", error);
       toast.error("Credential not found");
-      navigate(-1);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchIpfsData = async (ipfsHash) => {
+    try {
+      const response = await fetch(
+        `https://gateway.pinata.cloud/ipfs/${ipfsHash}`,
+      );
+      if (response.ok) {
+        const data = await response.json();
+        setIpfsData(data);
+        // Update credential with IPFS data
+        setCredential((prev) => ({
+          ...prev,
+          title: data.name || data.title || prev.title,
+          description: data.description || prev.description,
+          issuer_name: data.issuer || data.issuer_name || prev.issuer_name,
+          recipient_name:
+            data.recipient || data.student_name || prev.recipient_name,
+          skills: data.skills || [],
+          metadata: data.metadata || data,
+        }));
+      }
+    } catch (error) {
+      console.log("Could not fetch IPFS data:", error);
     }
   };
 
@@ -96,7 +163,12 @@ const CredentialDetail = () => {
           <p>
             The credential you're looking for doesn't exist or has been removed.
           </p>
-          <Link to="/dashboard/credentials" className="btn btn-primary">
+          <Link
+            to={
+              isStudentRoute ? "/student/credentials" : "/dashboard/credentials"
+            }
+            className="btn btn-primary"
+          >
             Back to Credentials
           </Link>
         </div>
@@ -162,7 +234,7 @@ const CredentialDetail = () => {
                 <span className="date-label">Issue Date</span>
                 <span className="date-value">
                   {new Date(
-                    credential.issue_date || credential.created_at
+                    credential.issue_date || credential.created_at,
                   ).toLocaleDateString("en-US", {
                     year: "numeric",
                     month: "long",
@@ -181,7 +253,7 @@ const CredentialDetail = () => {
                         year: "numeric",
                         month: "long",
                         day: "numeric",
-                      }
+                      },
                     )}
                   </span>
                 </div>
@@ -191,11 +263,13 @@ const CredentialDetail = () => {
             <div className="cert-footer">
               <div className="cert-id">
                 <span>
-                  Credential ID: {credential.id.slice(0, 8)}...
-                  {credential.id.slice(-4)}
+                  Credential ID:{" "}
+                  {String(credential.id).length > 12
+                    ? `${String(credential.id).slice(0, 8)}...${String(credential.id).slice(-4)}`
+                    : String(credential.id)}
                 </span>
                 <button
-                  onClick={() => copyToClipboard(credential.id)}
+                  onClick={() => copyToClipboard(String(credential.id))}
                   className="copy-btn"
                 >
                   <FiCopy />

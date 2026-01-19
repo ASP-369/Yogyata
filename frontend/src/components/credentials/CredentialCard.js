@@ -9,7 +9,11 @@ import {
 } from "react-icons/fi";
 import "./CredentialCard.css";
 
-const CredentialCard = ({ credential, compact = false }) => {
+const CredentialCard = ({
+  credential,
+  compact = false,
+  basePath = "/student/credentials",
+}) => {
   const getStatusBadge = () => {
     switch (credential.status) {
       case "verified":
@@ -83,7 +87,7 @@ const CredentialCard = ({ credential, compact = false }) => {
       </div>
 
       <div className="card-footer">
-        <Link to={`/credential/${credential.id}`} className="card-btn view-btn">
+        <Link to={`${basePath}/${credential.id}`} className="card-btn view-btn">
           <FiExternalLink />
           View
         </Link>
@@ -96,10 +100,16 @@ const CredentialCard = ({ credential, compact = false }) => {
       {credential.blockchain_hash && (
         <div className="blockchain-proof">
           <span className="hash-label">Hash:</span>
-          <span className="hash-value">
+          <a
+            href={`https://gateway.pinata.cloud/ipfs/${credential.blockchain_hash}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hash-value hash-link"
+            title="View on IPFS"
+          >
             {credential.blockchain_hash.slice(0, 8)}...
             {credential.blockchain_hash.slice(-6)}
-          </span>
+          </a>
         </div>
       )}
     </div>
