@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
+import { ethers } from "ethers";
 import {
   FiMail,
   FiLock,
@@ -9,11 +10,43 @@ import {
   FiEyeOff,
   FiAlertCircle,
   FiBriefcase,
+  FiChevronDown,
 } from "react-icons/fi";
 import { HiOutlineBuildingOffice2 } from "react-icons/hi2";
 import { toast } from "react-toastify";
 import "./Auth.css";
 import { supabase } from "../../config/supabase";
+
+// Contract ABI (only the functions we need for checking roles)
+const CONTRACT_ABI = [
+  {
+    "inputs": [{ "internalType": "address", "name": "", "type": "address" }],
+    "name": "isIssuer",
+    "outputs": [{ "internalType": "bool", "name": "", "type": "bool" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [{ "internalType": "address", "name": "", "type": "address" }],
+    "name": "isVerifier",
+    "outputs": [{ "internalType": "bool", "name": "", "type": "bool" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [{ "internalType": "address", "name": "validator", "type": "address" }],
+    "name": "getValidatorInfo",
+    "outputs": [
+      { "internalType": "uint256", "name": "rep", "type": "uint256" },
+      { "internalType": "uint256", "name": "st", "type": "uint256" },
+      { "internalType": "uint256", "name": "vp", "type": "uint256" }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  }
+];
+
+const CONTRACT_ADDRESS = process.env.REACT_APP_CONTRACT_ADDRESS;
 
 const SignupPage = () => {
   const [searchParams] = useSearchParams();
@@ -35,6 +68,10 @@ const SignupPage = () => {
   const [error, setError] = useState("");
   const [connectingWallet, setConnectingWallet] = useState(false);
 
+  // Institution dropdown states
+  const [institutions, setInstitutions] = useState([]);
+  const [loadingInstitutions, setLoadingInstitutions] = useState(false);
+
   const { signUp, user } = useAuth();
   const navigate = useNavigate();
 
@@ -45,9 +82,67 @@ const SignupPage = () => {
     }
   }, [user, navigate]);
 
+  // Fetch verified institutions when role is institution
+  useEffect(() => {
+    const fetchInstitutions = async () => {
+      if (formData.role === "institution") {
+        setLoadingInstitutions(true);
+        try {
+          const { data, error } = await supabase
+            .from("Institution")
+            .select("id, name")
+            .eq("verified", true)
+            .order("name");
+
+          if (error) {
+            console.error("Error fetching institutions:", error);
+          } else {
+            setInstitutions(data || []);
+          }
+        } catch (err) {
+          console.error("Failed to fetch institutions:", err);
+        } finally {
+          setLoadingInstitutions(false);
+        }
+      }
+    };
+
+    fetchInstitutions();
+  }, [formData.role]);
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  // Check if wallet is already an issuer or verifier on the blockchain
+  const checkWalletRoles = async (walletAddress) => {
+    if (!window.ethereum || !CONTRACT_ADDRESS || !walletAddress) {
+      return { isIssuer: false, isVerifier: false, rep: 0 };
+    }
+
+    try {
+      const provider = new ethers.providers.Web3Provider(window.ethereum);
+      const contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, provider);
+
+      const [issuer, verifier, validatorInfo] = await Promise.all([
+        contract.isIssuer(walletAddress),
+        contract.isVerifier(walletAddress),
+        contract.getValidatorInfo(walletAddress)
+      ]);
+
+      // Convert rep from wei to human-readable (rep / 10^18)
+      const repValue = parseFloat(ethers.utils.formatEther(validatorInfo.rep));
+
+      return {
+        isIssuer: issuer,
+        isVerifier: verifier,
+        rep: repValue
+      };
+    } catch (err) {
+      console.error("Error checking wallet roles:", err);
+      return { isIssuer: false, isVerifier: false, rep: 0 };
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -61,6 +156,11 @@ const SignupPage = () => {
 
     if (formData.password.length < 6) {
       setError("Password must be at least 6 characters");
+      return;
+    }
+
+    if (formData.role === "institution" && !formData.institutionName) {
+      setError("Please select an institution");
       return;
     }
 
@@ -95,12 +195,39 @@ const SignupPage = () => {
               id: data.user.id,
               email: formData.email,
               aadhar: formData.aadhar,
-              // any other fields if needed, e.g. name? User said 'aadhar also'
             }]);
 
           if (studentError) {
             console.error("Failed to create student profile:", studentError);
             toast.error("Account created but failed to save student profile details.");
+          }
+        }
+
+        // If institution (teacher), create profile in 'teacher' table
+        if (formData.role === "institution" && data?.user?.id) {
+          // Check if wallet has issuer/verifier roles on blockchain
+          let walletRoles = { isIssuer: false, isVerifier: false, rep: 0 };
+
+          if (formData.walletAddress) {
+            walletRoles = await checkWalletRoles(formData.walletAddress);
+
+            if (walletRoles.isIssuer || walletRoles.isVerifier) {
+              toast.info(`Your wallet is already registered as ${walletRoles.isIssuer ? 'Issuer' : ''} ${walletRoles.isIssuer && walletRoles.isVerifier ? 'and' : ''} ${walletRoles.isVerifier ? 'Verifier' : ''} on the blockchain!`);
+            }
+          }
+
+          const { error: teacherError } = await supabase
+            .from("Teacher")
+            .insert([{
+              institution_name: formData.institutionName,
+              is_issuer: walletRoles.isIssuer,
+              is_verifier: walletRoles.isVerifier,
+              rep: walletRoles.rep,
+            }]);
+
+          if (teacherError) {
+            console.error("Failed to create teacher profile:", teacherError);
+            toast.error("Account created but failed to save teacher profile details.");
           }
         }
 
@@ -258,20 +385,53 @@ const SignupPage = () => {
 
             {formData.role === "institution" && (
               <div className="form-group">
-                <label htmlFor="institutionName">Institution Name</label>
+                <label htmlFor="institutionName">Select Institution</label>
                 <div className="input-wrapper">
                   <HiOutlineBuildingOffice2 className="input-icon" />
-                  <input
-                    type="text"
+                  <select
                     id="institutionName"
                     name="institutionName"
                     value={formData.institutionName}
                     onChange={handleChange}
-                    placeholder="University of Example"
                     required
-                    style={{ color: "black" }}
-                  />
+                    style={{
+                      color: formData.institutionName ? "black" : "#9ca3af",
+                      width: "100%",
+                      padding: "0.875rem 1rem 0.875rem 2.75rem",
+                      border: "1px solid #d1d5db",
+                      borderRadius: "8px",
+                      fontSize: "1rem",
+                      backgroundColor: "white",
+                      appearance: "none",
+                      cursor: "pointer",
+                    }}
+                  >
+                    <option value="" disabled>
+                      {loadingInstitutions ? "Loading..." : "Select your institution"}
+                    </option>
+                    {institutions.map((inst) => (
+                      <option key={inst.id} value={inst.name} style={{ color: "black" }}>
+                        {inst.name}
+                      </option>
+                    ))}
+                  </select>
+                  <FiChevronDown style={{
+                    position: "absolute",
+                    right: "1rem",
+                    color: "#9ca3af",
+                    pointerEvents: "none"
+                  }} />
                 </div>
+                <p style={{
+                  marginTop: "0.5rem",
+                  fontSize: "0.875rem",
+                  color: "#6b7280"
+                }}>
+                  Can't find your organization?{" "}
+                  <Link to="/organization" style={{ color: "#4f46e5", fontWeight: 500 }}>
+                    Click here to Register Organization
+                  </Link>
+                </p>
               </div>
             )}
 

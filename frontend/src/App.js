@@ -12,6 +12,7 @@ import LandingPage from "./pages/LandingPage";
 import LoginPage from "./pages/auth/LoginPage";
 import SignupPage from "./pages/auth/SignupPage";
 import ForgotPasswordPage from "./pages/auth/ForgotPasswordPage";
+import OrganizationRegister from "./pages/auth/OrganizationRegister";
 import VerifyCredential from "./pages/verification/VerifyCredential";
 
 // Credential Pages
@@ -27,6 +28,7 @@ import StudentRecommendations from "./pages/student/Recommendations";
 import InstitutionDashboard from "./pages/institution/Dashboard";
 import IssueCredential from "./pages/institution/IssueCredential";
 import CredentialManagement from "./pages/institution/CredentialManagement";
+import InstitutionRanking from "./pages/institution/InstitutionRanking";
 
 // Employer Pages
 import EmployerDashboard from "./pages/employer/Dashboard";
@@ -78,9 +80,13 @@ function App() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/signup" element={<SignupPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/organization" element={<OrganizationRegister />} />
 
         {/* Admin Route */}
         <Route path="/admin" element={<AdminPanel />} />
+
+        {/* Institution Ranking - Public */}
+        <Route path="/rankings" element={<InstitutionRanking />} />
 
         {/* Student Routes */}
         <Route

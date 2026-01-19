@@ -20,6 +20,7 @@ import {
 import { toast } from "react-toastify";
 import { ethers } from "ethers";
 import { useWeb3 } from "../../context/Web3Context";
+import { supabase } from "../../config/supabase";
 import "./AdminPanel.css";
 
 const AdminPanel = () => {
@@ -104,6 +105,27 @@ const AdminPanel = () => {
             await tx.wait();
             toast.success(`Successfully registered ${issuerAddress.slice(0, 6)}...${issuerAddress.slice(-4)} as Issuer!`);
 
+            // Update Teacher table - find teacher by wallet and update is_issuer and rep
+            try {
+                // First try to find user with this wallet address
+                const { data: authUsers } = await supabase.auth.admin.listUsers();
+                const matchingUser = authUsers?.users?.find(
+                    u => u.user_metadata?.wallet_address?.toLowerCase() === issuerAddress.toLowerCase()
+                );
+
+                if (matchingUser) {
+                    const repValue = parseFloat(issuerRep); // Already in human-readable form
+                    await supabase
+                        .from("Teacher")
+                        .update({ is_issuer: true, rep: repValue })
+                        .eq("id", matchingUser.id);
+                    toast.info("Teacher record updated with issuer status");
+                }
+            } catch (dbError) {
+                console.error("Error updating teacher record:", dbError);
+                // Don't show error to user - blockchain registration was successful
+            }
+
             setIssuerAddress("");
             setIssuerRep("100");
             setIssuerStake("100");
@@ -143,6 +165,27 @@ const AdminPanel = () => {
             await tx.wait();
             toast.success(`Successfully registered ${verifierAddress.slice(0, 6)}...${verifierAddress.slice(-4)} as Verifier!`);
 
+            // Update Teacher table - find teacher by wallet and update is_verifier and rep
+            try {
+                // First try to find user with this wallet address
+                const { data: authUsers } = await supabase.auth.admin.listUsers();
+                const matchingUser = authUsers?.users?.find(
+                    u => u.user_metadata?.wallet_address?.toLowerCase() === verifierAddress.toLowerCase()
+                );
+
+                if (matchingUser) {
+                    const repValue = parseFloat(verifierRep); // Already in human-readable form
+                    await supabase
+                        .from("Teacher")
+                        .update({ is_verifier: true, rep: repValue })
+                        .eq("id", matchingUser.id);
+                    toast.info("Teacher record updated with verifier status");
+                }
+            } catch (dbError) {
+                console.error("Error updating teacher record:", dbError);
+                // Don't show error to user - blockchain registration was successful
+            }
+
             setVerifierAddress("");
             setVerifierRep("100");
             setVerifierStake("100");
@@ -160,6 +203,7 @@ const AdminPanel = () => {
             setRegisteringVerifier(false);
         }
     };
+
 
     // Stake Management
     const handleStakeOperation = async (isDeposit) => {
