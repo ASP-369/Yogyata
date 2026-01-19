@@ -1,0 +1,8 @@
+college,min_gpa,min_test,required_skills,region
+MIT,3.8,1550,Python|ML|DS|React,USA
+Stanford,3.7,1500,Python|ML|DS|AWS,USA
+Oxford,3.6,1450,Python|DS|Docker,UK
+IIT_Delhi,3.5,1350,ML|DS|Python,India
+NUS,3.4,1400,React|AWS|Docker|ML,Singapore
+PES_University,3.1,1150,Python|React|DS,India
+RV_College,3.0,1100,Docker|AWS|Python,India

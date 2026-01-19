@@ -22,6 +22,11 @@ Yogyata/
 │   │   ├── middleware/      # Auth middleware
 │   │   ├── routes/          # API routes
 │   │   └── index.js         # Server entry point
+│   ├── ai_engine/           # Python AI/ML Engine
+│   │   ├── data/           # CSV datasets
+│   │   ├── kg/             # Knowledge Graph builder
+│   │   ├── models/         # AI/GNN models
+│   │   └── api.py          # AI service entry point
 │   ├── .env.example         # Environment variables template
 │   └── package.json
 │
@@ -58,6 +63,7 @@ Yogyata/
 - Morgan (Logging)
 - UUID
 - Express Validator
+- Neo4j
 
 ### External Integrations (Placeholder Ready)
 
@@ -106,6 +112,44 @@ Yogyata/
    npm run dev
    ```
    Server runs on `http://localhost:5000`
+
+### AI Engine Setup (Python)
+
+1. Navigate to the AI engine folder:
+   ```bash
+   cd backend/ai_engine
+   ```
+
+2. Create and activate a virtual environment:
+   ```bash
+   # Windows:
+   python -m venv venv
+   .\venv\Scripts\activate
+
+   # Linux/Mac:
+   python3 -m venv venv
+   source venv/bin/activate
+   ```
+
+3. Install dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
+4. Create `.env` file from `.env.example`:
+   ```env
+   NEO4J_URI=bolt://localhost:7687
+   NEO4J_USER=neo4j
+   NEO4J_PASSWORD=your_password
+```
+5.Run the formodel:
+   ```bash
+   python run_demo.py
+   ```
+6. Run the AI API:
+   ```bash
+   python api.py
+   ```
+   AI service runs on `http://localhost:8000`
 
 ### Frontend Setup
 

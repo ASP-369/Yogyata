@@ -1,0 +1,14 @@
+flwr
+torch
+torch_geometric
+neo4j
+fastapi
+uvicorn
+pandas
+requests
+numpy
+faker
+networkx
+python-dotenv
+supabase
+opacus

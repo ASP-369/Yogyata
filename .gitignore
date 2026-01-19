@@ -25,3 +25,12 @@ yarn-error.log*
 # OS
 .DS_Store
 Thumbs.db
+
+#model
+fl_global_model.npz
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+

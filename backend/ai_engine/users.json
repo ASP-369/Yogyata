@@ -1,0 +1,32 @@
+[
+    {
+        "username": "student1",
+        "password": "password123",
+        "role": "student",
+        "gpa": 3.8,
+        "test_score": 1450,
+        "skills": [
+            "Python",
+            "React",
+            "Docker"
+        ],
+        "aspirations": [
+            "MIT",
+            "Stanford"
+        ]
+    },
+    {
+        "username": "mit_admin",
+        "password": "adminpassword",
+        "role": "institution"
+    },
+    {
+        "id": "91480fae-0cb8-42b6-bc55-18003961024b",
+        "username": "91480fae-0cb8-42b6-bc55-18003961024b",
+        "email": "nishtashetty02@gmail.com",
+        "gpa": 3.5,
+        "test_score": 1200,
+        "skills": [],
+        "aspirations": []
+    }
+]
