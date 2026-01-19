@@ -1,0 +1,8 @@
+institution,region,avg_gpa,avg_test,focus_skills,student_count
+RV_College,India,3.0,1100,Docker|AWS|Python,200
+PES_University,India,3.1,1150,Python|React|DS,200
+IIT_Delhi,India,3.5,1350,ML|DS|Python,250
+Stanford,USA,3.7,1500,ML|DS|AWS,300
+Oxford,UK,3.6,1450,Python|DS|Docker,250
+MIT,USA,3.8,1550,ML|DS|React,300
+NUS,Singapore,3.4,1400,React|AWS|Docker,250

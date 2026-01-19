@@ -1,0 +1,32 @@
+course_name,college,level,tags,duration
+Introduction to Deep Learning,MIT,Advanced,ML|Python|DS,12 weeks
+Full-Stack Web Development,Stanford,Intermediate,React|Python|Docker,16 weeks
+Data Science Fundamentals,Oxford,Beginner,DS|Python,10 weeks
+Cloud Computing with AWS,NUS,Intermediate,AWS|Docker,8 weeks
+Machine Learning Engineering,IIT_Delhi,Advanced,ML|DS|Python,14 weeks
+Advanced React Patterns,PES_University,Advanced,React,6 weeks
+DevOps with Docker and Kubernetes,RV_College,Intermediate,Docker|AWS,10 weeks
+Artificial Intelligence for All,Stanford,Beginner,ML|DS,8 weeks
+Reinforcement Learning,MIT,Expert,ML|Python,12 weeks
+Microservices Architecture,Oxford,Advanced,Docker|AWS,8 weeks
+Materials Fabrication and Characterization,RV_College,Advanced,Materials|Nano|Characterization,10 weeks
+Integrated Circuits and Systems,RV_College,Advanced,VLSI|IC|Embedded,8 weeks
+Hydrogen and Green Technology,RV_College,Intermediate,Hydrogen|Renewable|Sustainability,8 weeks
+Connected and Sustainable Electric Vehicle Technologies,RV_College,Advanced,EV|Embedded|Automotive,10 weeks
+Cognitive Intelligent Systems for Sustainable Solutions,RV_College,Advanced,AI|ML|Analytics,14 weeks
+Internet of Things (IoT),RV_College,Intermediate,IoT|Sensors|Cloud,10 weeks
+Smart Antenna Systems and RF Microwave,RV_College,Advanced,RF|Antenna|Wireless,14 weeks
+Automation and Robotics,RV_College,Intermediate,Robotics|Automation|CNC,6 weeks
+Logistics and Supply Chain Management,RV_College,Intermediate,Logistics|SCM|Analytics,6 weeks
+Women in Cloud,RV_College,Beginner,Cloud|DevOps|Azure,10 weeks
+AI Research and Business Solutions,RV_College,Advanced,AI|ML|Business,6 weeks
+Artificial Intelligence and Machine Learning CoE,PES_University,Advanced,AI|ML|DeepLearning,10 weeks
+Data Science and Big Data Analytics CoE,PES_University,Intermediate,DataScience|BigData|Analytics,8 weeks
+Cyber Security CoE,PES_University,Intermediate,CyberSecurity|Network|Forensics,10 weeks
+Internet of Things and Smart Systems CoE,PES_University,Intermediate,IoT|Embedded|SmartSystems,12 weeks
+Robotics and Automation CoE,PES_University,Advanced,Robotics|Automation|Control,14 weeks
+Cloud Computing and DevOps CoE,PES_University,Intermediate,Cloud|DevOps|Containers,10 weeks
+VLSI and Embedded Systems CoE,PES_University,Advanced,VLSI|Embedded|ASIC,6 weeks
+Blockchain Technology CoE,PES_University,Beginner,Blockchain|Web3|DistributedSystems,14 weeks
+AR VR and Game Technology CoE,PES_University,Intermediate,AR|VR|GameDevelopment,8 weeks
+Sustainable Energy and Electric Mobility CoE,PES_University,Intermediate,EV|Renewable|Energy,6 weeks
