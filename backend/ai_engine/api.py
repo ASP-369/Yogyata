@@ -48,9 +48,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Serve UI
-app.mount("/static", StaticFiles(directory=os.path.join(ROOT_DIR, "static")), name="static")
-
 
 # -------------------------------------------------
 # Pydantic Models
@@ -157,9 +154,23 @@ except Exception as e:
 # -------------------------------------------------
 url: str = os.environ.get("SUPABASE_URL")
 key: str = os.environ.get("SUPABASE_KEY")
-supabase: Client = create_client(url, key)
+
+# Make Supabase optional
+supabase: Client = None
+if url and key:
+    try:
+        supabase = create_client(url, key)
+        print("[OK] Connected to Supabase")
+    except Exception as e:
+        print(f"[WARNING] Could not connect to Supabase: {e}")
+        supabase = None
+else:
+    print("[WARNING] SUPABASE_URL or SUPABASE_KEY not found in environment - Supabase disabled")
 
 async def get_current_user(authorization: str = Header(None)):
+    if not supabase:
+        raise HTTPException(status_code=503, detail="Authentication service unavailable - Supabase not configured")
+    
     if not authorization:
         raise HTTPException(status_code=401, detail="Missing Authorization Header")
     
@@ -221,11 +232,6 @@ def update_user_profile(user_id: str, data: dict):
 # -------------------------------------------------
 # Routes
 # -------------------------------------------------
-@app.get("/", response_class=HTMLResponse)
-async def read_root():
-    return FileResponse(os.path.join(ROOT_DIR, "static/index.html"))
-
-
 
 # -------------------------------------------------
 # Auth Routes (Removed - Handled by Supabase)
@@ -657,6 +663,51 @@ async def update_student_profile(profile_data: StudentProfile, user=Depends(get_
         # Should not happen if get_or_create works, but just in case
         get_or_create_user_profile(user.id, user.email)
         update_user_profile(user.id, data)
+        
+    return {"status": "success", "message": "Profile updated"}
+
+
+# Public profile endpoint (no auth required)
+@app.post("/profile/update")
+async def update_profile_public(profile_data: StudentProfile):
+    """
+    Public endpoint to update profile without authentication.
+    Uses username/email as the identifier.
+    """
+    user_id = profile_data.username
+    
+    data = {
+        "gpa": profile_data.gpa,
+        "test_score": profile_data.test_score,
+        "skills": profile_data.skills,
+        "aspirations": profile_data.aspirations
+    }
+    
+    updated = update_user_profile(user_id, data)
+    
+    if not updated:
+        # Create new profile if not exists
+        users = []
+        users_path = os.path.join(CURRENT_DIR, "users.json")
+        if os.path.exists(users_path):
+            with open(users_path, "r") as f:
+                try:
+                    users = json.load(f)
+                except:
+                    users = []
+        
+        new_user = {
+            "id": user_id,
+            "username": user_id,
+            "email": user_id,
+            "gpa": profile_data.gpa,
+            "test_score": profile_data.test_score,
+            "skills": profile_data.skills,
+            "aspirations": profile_data.aspirations
+        }
+        users.append(new_user)
+        with open(users_path, "w") as f:
+            json.dump(users, f, indent=4)
         
     return {"status": "success", "message": "Profile updated"}
 

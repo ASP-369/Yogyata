@@ -32,7 +32,7 @@ const IssueCredential = () => {
     connectWallet,
     switchNetwork,
     issueCredentialOnChain,
-    NETWORK_NAME
+    NETWORK_NAME,
   } = useWeb3();
 
   const [step, setStep] = useState(1);
@@ -99,7 +99,11 @@ const IssueCredential = () => {
 
   const validateStep = (currentStep) => {
     if (currentStep === 1) {
-      if (!formData.studentName || !formData.studentEmail || !formData.studentAadhar) {
+      if (
+        !formData.studentName ||
+        !formData.studentEmail ||
+        !formData.studentAadhar
+      ) {
         toast.error("Please fill in all required student details");
         return false;
       }
@@ -142,8 +146,8 @@ const IssueCredential = () => {
         keyvalues: {
           issuer: account,
           studentAadhar: formData.studentAadhar,
-          type: "Yogyata Credential"
-        }
+          type: "Yogyata Credential",
+        },
       },
       pinataContent: {
         studentName: formData.studentName,
@@ -161,7 +165,7 @@ const IssueCredential = () => {
         issuer: account,
         issuerId: user.id,
         timestamp: Date.now(),
-      }
+      },
     };
 
     try {
@@ -174,7 +178,7 @@ const IssueCredential = () => {
             pinata_api_key: process.env.REACT_APP_PINATA_API_KEY,
             pinata_secret_api_key: process.env.REACT_APP_PINATA_SECRET_KEY,
           },
-        }
+        },
       );
       return res.data.IpfsHash;
     } catch (error) {
@@ -195,7 +199,10 @@ const IssueCredential = () => {
     }
 
     // Check if Pinata keys are configured
-    if (!process.env.REACT_APP_PINATA_API_KEY || !process.env.REACT_APP_PINATA_SECRET_KEY) {
+    if (
+      !process.env.REACT_APP_PINATA_API_KEY ||
+      !process.env.REACT_APP_PINATA_SECRET_KEY
+    ) {
       toast.error("IPFS configuration missing. Please check .env file");
       return;
     }
@@ -211,32 +218,51 @@ const IssueCredential = () => {
       // 2. Issue credential on blockchain with IPFS hash
       toast.info("Submitting to blockchain...");
       // Pass the IPFS hash as the dataHash
-      const { tx, receipt, credentialId } = await issueCredentialOnChain(ipfsHash);
+      const { tx, receipt, credentialId } =
+        await issueCredentialOnChain(ipfsHash);
 
       setTxHash(tx.hash);
       setBlockchainCredentialId(credentialId);
 
       // 3. Store in Supabase with the correct schema
       // Table has: id (int8 - credential ID), ipfs_hash (text), aadhar (int8)
+      console.log("Storing credential in Supabase:", {
+        id: credentialId,
+        ipfs_hash: ipfsHash,
+        aadhar: formData.studentAadhar,
+        aadharParsed: parseInt(formData.studentAadhar, 10),
+      });
+
       const { data: credData, error: credError } = await supabase
         .from("student_creds")
         .insert({
-          id: credentialId,  // Credential ID from smart contract
+          id: credentialId, // Credential ID from smart contract
           ipfs_hash: ipfsHash, // Store the IPFS hash
-          aadhar: parseInt(formData.studentAadhar, 10),  // Aadhar as int8
+          aadhar: parseInt(formData.studentAadhar, 10), // Aadhar as int8
         })
         .select()
         .single();
 
-      if (credError) throw credError;
+      if (credError) {
+        console.error("Supabase insert error:", credError);
+        // Show more specific error for database issues
+        if (credError.code === "23505") {
+          toast.error("This credential ID already exists in database");
+        } else if (credError.code === "42501") {
+          toast.error("Database permission denied. Check RLS policies.");
+        } else {
+          toast.error(`Database error: ${credError.message}`);
+        }
+        throw credError;
+      }
 
+      console.log("Credential stored successfully:", credData);
       toast.success("Credential issued successfully!");
 
       // Delay navigation slightly to let user see success
       setTimeout(() => {
         navigate("/institution/credentials");
       }, 2000);
-
     } catch (error) {
       console.error("Failed to issue credential:", error);
       toast.error(error.message || "Failed to issue credential");
@@ -250,8 +276,9 @@ const IssueCredential = () => {
       {[1, 2, 3].map((s) => (
         <div
           key={s}
-          className={`step ${step >= s ? "active" : ""} ${step > s ? "completed" : ""
-            }`}
+          className={`step ${step >= s ? "active" : ""} ${
+            step > s ? "completed" : ""
+          }`}
         >
           <div className="step-number">{step > s ? <FiCheck /> : s}</div>
           <span className="step-label">
@@ -276,7 +303,10 @@ const IssueCredential = () => {
           <div className="wallet-prompt">
             <div className="prompt-icon">🔗</div>
             <h2>Connect Your Wallet</h2>
-            <p>You need to connect your MetaMask wallet to issue credentials on the blockchain.</p>
+            <p>
+              You need to connect your MetaMask wallet to issue credentials on
+              the blockchain.
+            </p>
             <button className="btn btn-primary" onClick={connectWallet}>
               Connect Wallet
             </button>
@@ -300,7 +330,10 @@ const IssueCredential = () => {
           <div className="wallet-prompt">
             <div className="prompt-icon">🔗</div>
             <h2>Wrong Network</h2>
-            <p>Please switch to <strong>{NETWORK_NAME}</strong> network to interact with the contract.</p>
+            <p>
+              Please switch to <strong>{NETWORK_NAME}</strong> network to
+              interact with the contract.
+            </p>
             <p className="wallet-address-display">
               Connected: {account?.slice(0, 6)}...{account?.slice(-4)}
             </p>
@@ -326,11 +359,17 @@ const IssueCredential = () => {
           <div className="wallet-prompt">
             <div className="prompt-icon">⚠️</div>
             <h2>Not Registered as Issuer</h2>
-            <p>Your wallet address is not registered as an issuer on the smart contract.</p>
+            <p>
+              Your wallet address is not registered as an issuer on the smart
+              contract.
+            </p>
             <p className="wallet-address-display">
               Connected: {account?.slice(0, 6)}...{account?.slice(-4)}
             </p>
-            <p>Please contact the contract administrator or go to <a href="/admin">/admin</a> to register.</p>
+            <p>
+              Please contact the contract administrator or go to{" "}
+              <a href="/admin">/admin</a> to register.
+            </p>
           </div>
         </div>
       </div>
@@ -421,9 +460,7 @@ const IssueCredential = () => {
               </div>
 
               <div className="form-group">
-                <label htmlFor="studentWallet">
-                  Wallet Address (Optional)
-                </label>
+                <label htmlFor="studentWallet">Wallet Address (Optional)</label>
                 <input
                   type="text"
                   id="studentWallet"
@@ -611,16 +648,16 @@ const IssueCredential = () => {
                 <FiFileText />
                 Review & Issue
               </h2>
-              <p>Review the credential details before issuing to the blockchain</p>
+              <p>
+                Review the credential details before issuing to the blockchain
+              </p>
 
               <div className="review-card">
                 <div className="review-section">
                   <h3>Student Information</h3>
                   <div className="review-row">
                     <span className="review-label">Name</span>
-                    <span className="review-value">
-                      {formData.studentName}
-                    </span>
+                    <span className="review-value">{formData.studentName}</span>
                   </div>
                   <div className="review-row">
                     <span className="review-label">Email</span>
@@ -631,7 +668,8 @@ const IssueCredential = () => {
                   <div className="review-row">
                     <span className="review-label">Aadhar</span>
                     <span className="review-value">
-                      {formData.studentAadhar.slice(0, 4)}****{formData.studentAadhar.slice(-4)}
+                      {formData.studentAadhar.slice(0, 4)}****
+                      {formData.studentAadhar.slice(-4)}
                     </span>
                   </div>
                   {formData.studentWallet && (
@@ -705,13 +743,13 @@ const IssueCredential = () => {
                 <div>
                   <p className="notice-title">Blockchain Transaction</p>
                   <p>
-                    This credential will be recorded on the blockchain. A transaction
-                    will be submitted to the smart contract. You will need to confirm
-                    this transaction in MetaMask.
+                    This credential will be recorded on the blockchain. A
+                    transaction will be submitted to the smart contract. You
+                    will need to confirm this transaction in MetaMask.
                   </p>
                   <p className="notice-highlight">
-                    The credential will require approval from 2/3 of registered verifiers
-                    before it is fully verified.
+                    The credential will require approval from 2/3 of registered
+                    verifiers before it is fully verified.
                   </p>
                 </div>
               </div>

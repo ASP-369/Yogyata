@@ -14,6 +14,7 @@ import {
 } from "react-icons/fi";
 import { toast } from "react-toastify";
 import api from "../../services/api";
+import aiApi from "../../services/aiApi"; // Add AI API import
 import "./Profile.css";
 
 const StudentProfile = () => {
@@ -30,6 +31,10 @@ const StudentProfile = () => {
     linkedinUrl: "",
     portfolioUrl: "",
     isPublic: false,
+    // AI Backend specific fields
+    gpa: null,
+    test_score: null,
+    aspirations: [],
   });
   const [newSkill, setNewSkill] = useState("");
   const [newInterest, setNewInterest] = useState("");
@@ -41,19 +46,38 @@ const StudentProfile = () => {
   const fetchProfile = async () => {
     try {
       setLoading(true);
-      const response = await api.get("/students/profile");
-      if (response.data.success && response.data.data) {
-        const data = response.data.data;
+
+      // Load profile from Supabase user metadata if available
+      if (user && user.user_metadata) {
         setProfileData({
-          bio: data.bio || "",
-          education: data.education || [],
-          skills: data.skills || [],
-          interests: data.interests || [],
-          targetUniversities: data.target_universities || [],
-          careerGoals: data.career_goals || "",
-          linkedinUrl: data.linkedin_url || "",
-          portfolioUrl: data.portfolio_url || "",
-          isPublic: data.is_public || false,
+          bio: user.user_metadata.bio || "",
+          education: user.user_metadata.education || [],
+          skills: user.user_metadata.skills || [],
+          interests: user.user_metadata.interests || [],
+          targetUniversities: user.user_metadata.targetUniversities || [],
+          careerGoals: user.user_metadata.careerGoals || "",
+          linkedinUrl: user.user_metadata.linkedinUrl || "",
+          portfolioUrl: user.user_metadata.portfolioUrl || "",
+          isPublic: user.user_metadata.isPublic || false,
+          gpa: user.user_metadata.gpa || null,
+          test_score: user.user_metadata.test_score || null,
+          aspirations: user.user_metadata.aspirations || [],
+        });
+      } else {
+        // Set default profile if no user data
+        setProfileData({
+          bio: "",
+          education: [],
+          skills: [],
+          interests: [],
+          targetUniversities: [],
+          careerGoals: "",
+          linkedinUrl: "",
+          portfolioUrl: "",
+          isPublic: false,
+          gpa: null,
+          test_score: null,
+          aspirations: [],
         });
       }
     } catch (error) {
@@ -111,10 +135,35 @@ const StudentProfile = () => {
   const handleSave = async () => {
     try {
       setSaving(true);
-      await api.put("/students/profile", profileData);
+
+      // Save to AI backend for recommendations
+      const aiProfileData = {
+        username: user?.email || "guest", // Use email as username or "guest"
+        gpa: parseFloat(profileData.gpa) || 0,
+        test_score: parseInt(profileData.test_score) || 0,
+        skills: profileData.skills,
+        aspirations:
+          profileData.targetUniversities || profileData.aspirations || [],
+      };
+
+      // Use public endpoint that doesn't require auth
+      await aiApi.post("/profile/update", aiProfileData);
+
+      // Update Supabase user metadata if user is logged in
+      if (user) {
+        await updateProfile({
+          gpa: profileData.gpa,
+          test_score: profileData.test_score,
+          skills: profileData.skills,
+          bio: profileData.bio,
+          targetUniversities: profileData.targetUniversities,
+        });
+      }
+
       toast.success("Profile updated successfully!");
     } catch (error) {
-      toast.error("Failed to update profile");
+      console.error("Profile save error:", error);
+      toast.error(`Failed to update profile: ${error.message}`);
     } finally {
       setSaving(false);
     }
@@ -122,10 +171,13 @@ const StudentProfile = () => {
 
   const handleExportData = async () => {
     try {
-      const response = await api.get("/students/credentials");
       const data = {
         profile: profileData,
-        credentials: response.data.data || [],
+        user: {
+          id: user?.id,
+          email: user?.email,
+        },
+        exportDate: new Date().toISOString(),
       };
 
       const blob = new Blob([JSON.stringify(data, null, 2)], {
@@ -134,7 +186,7 @@ const StudentProfile = () => {
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `yogyata-credentials-${
+      a.download = `yogyata-profile-${
         new Date().toISOString().split("T")[0]
       }.json`;
       a.click();
@@ -142,6 +194,7 @@ const StudentProfile = () => {
 
       toast.success("Data exported successfully!");
     } catch (error) {
+      console.error("Export failed:", error);
       toast.error("Failed to export data");
     }
   };
@@ -214,6 +267,43 @@ const StudentProfile = () => {
               placeholder="Tell us about yourself..."
               rows={4}
             />
+          </div>
+        </div>
+
+        {/* Academic Information */}
+        <div className="profile-card">
+          <h3>
+            <FiBook />
+            Academic Information
+          </h3>
+          <div className="form-row">
+            <div className="form-group">
+              <label htmlFor="gpa">GPA</label>
+              <input
+                type="number"
+                id="gpa"
+                name="gpa"
+                value={profileData.gpa || ""}
+                onChange={handleChange}
+                placeholder="3.5"
+                step="0.1"
+                min="0"
+                max="4.0"
+              />
+            </div>
+            <div className="form-group">
+              <label htmlFor="test_score">Test Score</label>
+              <input
+                type="number"
+                id="test_score"
+                name="test_score"
+                value={profileData.test_score || ""}
+                onChange={handleChange}
+                placeholder="1200"
+                min="0"
+                max="1600"
+              />
+            </div>
           </div>
         </div>
 

@@ -29,6 +29,7 @@ import InstitutionDashboard from "./pages/institution/Dashboard";
 import IssueCredential from "./pages/institution/IssueCredential";
 import CredentialManagement from "./pages/institution/CredentialManagement";
 import InstitutionRanking from "./pages/institution/InstitutionRanking";
+import InstitutionProfile from "./pages/institution/Profile";
 
 // Employer Pages
 import EmployerDashboard from "./pages/employer/Dashboard";
@@ -119,10 +120,7 @@ function App() {
           <Route path="issue" element={<IssueCredential />} />
           <Route path="credentials" element={<CredentialManagement />} />
           <Route path="credentials/:id" element={<CredentialDetail />} />
-          <Route
-            path="profile"
-            element={<PlaceholderPage title="Institution Profile" />}
-          />
+          <Route path="profile" element={<InstitutionProfile />} />
           <Route
             path="bulk-issue"
             element={<PlaceholderPage title="Bulk Issue Credentials" />}

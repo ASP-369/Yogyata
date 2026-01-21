@@ -23,16 +23,31 @@ const StudentRecommendations = () => {
 
   // Available Skills for Simulator
   const AVAILABLE_SKILLS = [
-    "Python", "React", "Node.js", "Machine Learning", "Data Science", "SQL",
-    "AWS", "Docker", "VLSI", "Embedded", "IoT", "EV", "Robotics",
-    "Blockchain", "CyberSecurity", "Cloud", "Business", "Communication"
+    "Python",
+    "React",
+    "Node.js",
+    "Machine Learning",
+    "Data Science",
+    "SQL",
+    "AWS",
+    "Docker",
+    "VLSI",
+    "Embedded",
+    "IoT",
+    "EV",
+    "Robotics",
+    "Blockchain",
+    "CyberSecurity",
+    "Cloud",
+    "Business",
+    "Communication",
   ];
 
   // Simulator State
   const [simulationValues, setSimulationValues] = useState({
     gpa: 3.5,
     test_score: 1200,
-    skills: ["Python", "Machine Learning"]
+    skills: ["Python", "Machine Learning"],
   });
   const [simulationResults, setSimulationResults] = useState(null);
   const [simulating, setSimulating] = useState(false);
@@ -41,7 +56,7 @@ const StudentRecommendations = () => {
     pref_institution: "",
     institution_weight: 0.5,
     pref_duration: "", // short, medium, long
-    duration_weight: 0.5
+    duration_weight: 0.5,
   });
   const [analysisText, setAnalysisText] = useState("");
 
@@ -55,7 +70,7 @@ const StudentRecommendations = () => {
       "Entrance Exam Score Card (JEE/NEET/CET)",
       "Transfer Certificate (TC)",
       "Migration Certificate",
-      "Identity Proof (Aadhar/PAN)"
+      "Identity Proof (Aadhar/PAN)",
     ],
     Foreign: [
       "Academic Transcripts (9th-12th)",
@@ -64,8 +79,8 @@ const StudentRecommendations = () => {
       "Statement of Purpose (SOP)",
       "Letters of Recommendation (2-3)",
       "Valid Passport",
-      "Financial Proof/Bank Statements"
-    ]
+      "Financial Proof/Bank Statements",
+    ],
   };
 
   // 1. Fetch Recommendations (Courses & Gap Analysis)
@@ -73,14 +88,17 @@ const StudentRecommendations = () => {
     setLoading(true);
     try {
       // API call for Courses
-      const skillsToUse = simulationValues.skills.length > 0 ? simulationValues.skills : ["Python"];
+      const skillsToUse =
+        simulationValues.skills.length > 0
+          ? simulationValues.skills
+          : ["Python"];
 
       const payload = {
         skills: skillsToUse,
         pref_institution: coursePreferences.pref_institution || null,
         institution_weight: parseFloat(coursePreferences.institution_weight),
         pref_duration: coursePreferences.pref_duration || null,
-        duration_weight: parseFloat(coursePreferences.duration_weight)
+        duration_weight: parseFloat(coursePreferences.duration_weight),
       };
 
       const coursesRes = await aiApi.post("/recommend/courses", payload);
@@ -88,7 +106,7 @@ const StudentRecommendations = () => {
       // Handle new response format { analysis, courses }
       setAnalysisText(coursesRes.data.analysis);
 
-      const formattedCourses = coursesRes.data.courses.map(course => {
+      const formattedCourses = coursesRes.data.courses.map((course) => {
         // Normalize score (max possible ~4.0) to a percentage
         let matchPercent = Math.round((course.score / 3.5) * 100);
         if (matchPercent > 99) matchPercent = 99; // Cap at 99 for realism
@@ -100,41 +118,52 @@ const StudentRecommendations = () => {
           match: matchPercent,
           skills: course.matches || [],
           level: course.level,
-          duration: course.duration
+          duration: course.duration,
         };
       });
       setCourseRecommendations(formattedCourses);
 
       // API call for College/Gap Analysis
-      const collegeRes = await aiApi.post("/recommend/me/colleges");
+      // Use public endpoint with sample data since Supabase is disabled
+      const collegePayload = {
+        gpa: simulationValues.gpa || 3.5,
+        test_score: simulationValues.test_score || 1200,
+        skills: skillsToUse,
+      };
+
+      const collegeRes = await aiApi.post("/recommend", collegePayload);
 
       if (collegeRes.data.skill_explanation) {
         const explanation = collegeRes.data.skill_explanation;
 
         // Parse the text lines from api.py into UI format
         const missing = explanation.skill_breakdown
-          .filter(s => s.includes("❌"))
-          .map(s => s.replace("❌ Missing: ", "").trim());
+          .filter((s) => s.includes("❌"))
+          .map((s) => s.replace("❌ Missing: ", "").trim());
 
         const have = explanation.skill_breakdown
-          .filter(s => s.includes("✅"))
-          .map(s => s.replace("✅ Matched: ", "").trim());
+          .filter((s) => s.includes("✅"))
+          .map((s) => s.replace("✅ Matched: ", "").trim());
 
         // Create visualization data
         const newGapData = [
-          ...have.map(s => ({ skill: s, have: 100, need: 100 })),
-          ...missing.map(s => ({ skill: s, have: 20, need: 90 }))
+          ...have.map((s) => ({ skill: s, have: 100, need: 100 })),
+          ...missing.map((s) => ({ skill: s, have: 20, need: 90 })),
         ];
         setGapData(newGapData);
       }
 
       // Initialize simulator with profile data if available
       // Note: We'd need to fetch profile first, but for now defaults are fine
-
     } catch (error) {
       console.error(error);
-      if (error.response?.status === 400 && error.response?.data?.detail?.includes("required")) {
-        toast.warning("Please complete your profile (GPA/Tests) to get recommendations.");
+      if (
+        error.response?.status === 400 &&
+        error.response?.data?.detail?.includes("required")
+      ) {
+        toast.warning(
+          "Please complete your profile (GPA/Tests) to get recommendations.",
+        );
       } else {
         toast.error("Failed to load AI recommendations.");
       }
@@ -144,10 +173,10 @@ const StudentRecommendations = () => {
   };
 
   const toggleSkill = (skill) => {
-    setSimulationValues(prev => {
+    setSimulationValues((prev) => {
       const currentSkills = prev.skills;
       if (currentSkills.includes(skill)) {
-        return { ...prev, skills: currentSkills.filter(s => s !== skill) };
+        return { ...prev, skills: currentSkills.filter((s) => s !== skill) };
       } else {
         return { ...prev, skills: [...currentSkills, skill] };
       }
@@ -160,7 +189,7 @@ const StudentRecommendations = () => {
       const payload = {
         gpa: parseFloat(simulationValues.gpa),
         test_score: parseInt(simulationValues.test_score),
-        skills: simulationValues.skills
+        skills: simulationValues.skills,
       };
 
       const response = await aiApi.post("/recommend", payload);
@@ -184,8 +213,6 @@ const StudentRecommendations = () => {
     { id: "gaps", label: "Skill Gap Analysis", icon: <FiTrendingUp /> },
     { id: "simulator", label: "College Recommendations", icon: <FiTarget /> },
   ];
-
-
 
   return (
     <div className="recommendations-page">
@@ -214,7 +241,6 @@ const StudentRecommendations = () => {
       {activeTab === "recommendations" && (
         <div className="tab-content">
           <div className="recommendations-container">
-
             {/* Preferences Control Panel */}
             <div className="pref-panel">
               <h3>🎯 Customize Recommendations</h3>
@@ -224,7 +250,12 @@ const StudentRecommendations = () => {
                   <select
                     className="form-control"
                     value={coursePreferences.pref_institution}
-                    onChange={(e) => setCoursePreferences({ ...coursePreferences, pref_institution: e.target.value })}
+                    onChange={(e) =>
+                      setCoursePreferences({
+                        ...coursePreferences,
+                        pref_institution: e.target.value,
+                      })
+                    }
                   >
                     <option value="">Any</option>
                     <option value="MIT">MIT</option>
@@ -236,11 +267,21 @@ const StudentRecommendations = () => {
                 </div>
 
                 <div className="pref-item">
-                  <label>College Priority: {coursePreferences.institution_weight}</label>
+                  <label>
+                    College Priority: {coursePreferences.institution_weight}
+                  </label>
                   <input
-                    type="range" min="0" max="1" step="0.1"
+                    type="range"
+                    min="0"
+                    max="1"
+                    step="0.1"
                     value={coursePreferences.institution_weight}
-                    onChange={(e) => setCoursePreferences({ ...coursePreferences, institution_weight: parseFloat(e.target.value) })}
+                    onChange={(e) =>
+                      setCoursePreferences({
+                        ...coursePreferences,
+                        institution_weight: parseFloat(e.target.value),
+                      })
+                    }
                   />
                 </div>
 
@@ -249,7 +290,12 @@ const StudentRecommendations = () => {
                   <select
                     className="form-control"
                     value={coursePreferences.pref_duration}
-                    onChange={(e) => setCoursePreferences({ ...coursePreferences, pref_duration: e.target.value })}
+                    onChange={(e) =>
+                      setCoursePreferences({
+                        ...coursePreferences,
+                        pref_duration: e.target.value,
+                      })
+                    }
                   >
                     <option value="">Any</option>
                     <option value="short">Short ({"<"} 8 weeks)</option>
@@ -259,11 +305,21 @@ const StudentRecommendations = () => {
                 </div>
 
                 <div className="pref-item">
-                  <label>Duration Priority: {coursePreferences.duration_weight}</label>
+                  <label>
+                    Duration Priority: {coursePreferences.duration_weight}
+                  </label>
                   <input
-                    type="range" min="0" max="1" step="0.1"
+                    type="range"
+                    min="0"
+                    max="1"
+                    step="0.1"
                     value={coursePreferences.duration_weight}
-                    onChange={(e) => setCoursePreferences({ ...coursePreferences, duration_weight: parseFloat(e.target.value) })}
+                    onChange={(e) =>
+                      setCoursePreferences({
+                        ...coursePreferences,
+                        duration_weight: parseFloat(e.target.value),
+                      })
+                    }
                   />
                 </div>
               </div>
@@ -272,7 +328,7 @@ const StudentRecommendations = () => {
                 className="btn btn-primary full-width"
                 onClick={fetchRecommendations}
                 disabled={loading}
-                style={{ marginTop: '1rem' }}
+                style={{ marginTop: "1rem" }}
               >
                 {loading ? "Updating..." : "Apply Filters"}
               </button>
@@ -327,7 +383,9 @@ const StudentRecommendations = () => {
                 <FiFileText />
                 Job Fit Analysis
               </h2>
-              <p>Paste a job description to see if you have the required skills</p>
+              <p>
+                Paste a job description to see if you have the required skills
+              </p>
             </div>
 
             <div className="jd-analyzer-container">
@@ -351,7 +409,7 @@ const StudentRecommendations = () => {
                     const mySkills = simulationValues.skills;
                     const res = await aiApi.post("/analyze/job", {
                       job_description: jobDescription,
-                      user_skills: mySkills
+                      user_skills: mySkills,
                     });
                     setGapData(res.data);
                     toast.success("Analysis Complete!");
@@ -380,9 +438,13 @@ const StudentRecommendations = () => {
                     <h4>✅ You Have</h4>
                     <div className="skill-tags">
                       {gapData.matched_skills.map((s, i) => (
-                        <span key={i} className="skill-tag match">{s}</span>
+                        <span key={i} className="skill-tag match">
+                          {s}
+                        </span>
                       ))}
-                      {gapData.matched_skills.length === 0 && <span className="text-muted">None</span>}
+                      {gapData.matched_skills.length === 0 && (
+                        <span className="text-muted">None</span>
+                      )}
                     </div>
                   </div>
 
@@ -390,9 +452,15 @@ const StudentRecommendations = () => {
                     <h4>❌ You Need</h4>
                     <div className="skill-tags">
                       {gapData.missing_skills.map((s, i) => (
-                        <span key={i} className="skill-tag missing">{s}</span>
+                        <span key={i} className="skill-tag missing">
+                          {s}
+                        </span>
                       ))}
-                      {gapData.missing_skills.length === 0 && <span className="text-muted">None! You are a perfect match.</span>}
+                      {gapData.missing_skills.length === 0 && (
+                        <span className="text-muted">
+                          None! You are a perfect match.
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -413,7 +481,9 @@ const StudentRecommendations = () => {
                 <FiTarget />
                 College Recommendations
               </h2>
-              <p>Adjust your stats to see how it affects your admission chances</p>
+              <p>
+                Adjust your stats to see how it affects your admission chances
+              </p>
             </div>
 
             <div className="simulator-container">
@@ -427,7 +497,12 @@ const StudentRecommendations = () => {
                     type="number"
                     step="0.1"
                     value={simulationValues.gpa}
-                    onChange={(e) => setSimulationValues({ ...simulationValues, gpa: e.target.value })}
+                    onChange={(e) =>
+                      setSimulationValues({
+                        ...simulationValues,
+                        gpa: e.target.value,
+                      })
+                    }
                     className="form-control"
                   />
                 </div>
@@ -437,7 +512,12 @@ const StudentRecommendations = () => {
                   <input
                     type="number"
                     value={simulationValues.test_score}
-                    onChange={(e) => setSimulationValues({ ...simulationValues, test_score: e.target.value })}
+                    onChange={(e) =>
+                      setSimulationValues({
+                        ...simulationValues,
+                        test_score: e.target.value,
+                      })
+                    }
                     className="form-control"
                   />
                 </div>
@@ -445,10 +525,10 @@ const StudentRecommendations = () => {
                 <div className="form-group">
                   <label>Skills (Select multiple)</label>
                   <div className="skill-selector">
-                    {AVAILABLE_SKILLS.map(skill => (
+                    {AVAILABLE_SKILLS.map((skill) => (
                       <span
                         key={skill}
-                        className={`select-chip ${simulationValues.skills.includes(skill) ? 'selected' : ''}`}
+                        className={`select-chip ${simulationValues.skills.includes(skill) ? "selected" : ""}`}
                         onClick={() => toggleSkill(skill)}
                       >
                         {skill}
@@ -470,44 +550,79 @@ const StudentRecommendations = () => {
               <div className="simulator-results">
                 {simulationResults ? (
                   <div className="results-split-container">
-
                     {/* Indian Colleges Section */}
                     <div className="results-section">
                       <h4 className="results-section-title">
                         🇮🇳 Indian Colleges (Merit Based)
                       </h4>
                       <div className="results-grid">
-                        {simulationResults.filter(r => r.region === 'India').map((rec, i) => (
-                          <div
-                            key={i}
-                            className={`result-card ${rec.score > 0 ? 'high-chance' : 'medium-chance'}`}
-                            onClick={() => setSelectedCollege(rec)}
-                          >
-                            <div className="result-header">
-                              <h4>{rec.college}</h4>
-                              <span className="badge">Cutoff Check</span>
-                            </div>
+                        {simulationResults
+                          .filter((r) => r.region === "India")
+                          .map((rec, i) => (
+                            <div
+                              key={i}
+                              className={`result-card ${rec.score > 0 ? "high-chance" : "medium-chance"}`}
+                              onClick={() => setSelectedCollege(rec)}
+                            >
+                              <div className="result-header">
+                                <h4>{rec.college}</h4>
+                                <span className="badge">Cutoff Check</span>
+                              </div>
 
-                            <div className="chance-meter">
-                              <div className="chance-bar" style={{ width: `${Math.round(rec.score > 0 ? 95 : 40)}%` }}></div>
-                              <span className="chance-text">{rec.score > 0 ? "High Probability" : "Low Probability"}</span>
-                            </div>
+                              <div className="chance-meter">
+                                <div
+                                  className="chance-bar"
+                                  style={{
+                                    width: `${Math.round(rec.score > 0 ? 95 : 40)}%`,
+                                  }}
+                                ></div>
+                                <span className="chance-text">
+                                  {rec.score > 0
+                                    ? "High Probability"
+                                    : "Low Probability"}
+                                </span>
+                              </div>
 
-                            <div className="criteria-check">
-                              <h5>Cutoff Status:</h5>
-                              <ul>
-                                <li className={rec.min_gpa <= parseFloat(simulationValues.gpa) ? "pass" : "fail"}>
-                                  GPA: {rec.min_gpa} {rec.min_gpa <= parseFloat(simulationValues.gpa) ? "✅" : "❌"}
-                                </li>
-                                <li className={rec.min_test <= parseInt(simulationValues.test_score) ? "pass" : "fail"}>
-                                  Test: {rec.min_test} {rec.min_test <= parseInt(simulationValues.test_score) ? "✅" : "❌"}
-                                </li>
-                              </ul>
+                              <div className="criteria-check">
+                                <h5>Cutoff Status:</h5>
+                                <ul>
+                                  <li
+                                    className={
+                                      rec.min_gpa <=
+                                      parseFloat(simulationValues.gpa)
+                                        ? "pass"
+                                        : "fail"
+                                    }
+                                  >
+                                    GPA: {rec.min_gpa}{" "}
+                                    {rec.min_gpa <=
+                                    parseFloat(simulationValues.gpa)
+                                      ? "✅"
+                                      : "❌"}
+                                  </li>
+                                  <li
+                                    className={
+                                      rec.min_test <=
+                                      parseInt(simulationValues.test_score)
+                                        ? "pass"
+                                        : "fail"
+                                    }
+                                  >
+                                    Test: {rec.min_test}{" "}
+                                    {rec.min_test <=
+                                    parseInt(simulationValues.test_score)
+                                      ? "✅"
+                                      : "❌"}
+                                  </li>
+                                </ul>
+                              </div>
                             </div>
-                          </div>
-                        ))}
-                        {simulationResults.filter(r => r.region === 'India').length === 0 && (
-                          <p className="no-data">No Indian colleges match your criteria.</p>
+                          ))}
+                        {simulationResults.filter((r) => r.region === "India")
+                          .length === 0 && (
+                          <p className="no-data">
+                            No Indian colleges match your criteria.
+                          </p>
                         )}
                       </div>
                     </div>
@@ -518,48 +633,72 @@ const StudentRecommendations = () => {
                         Foreign Colleges (Federated AI Model)
                       </h4>
                       <div className="results-grid">
-                        {simulationResults.filter(r => r.region !== 'India').map((rec, i) => (
-                          <div
-                            key={i}
-                            className={`result-card ${rec.score > 0.7 ? 'high-chance' : 'medium-chance'}`}
-                            onClick={() => setSelectedCollege(rec)}
-                          >
-                            <div className="result-header">
-                              <h4>{rec.college}</h4>
-                              <span className="badge ai-badge">AI Score: {Math.round(rec.score * 100)}</span>
-                            </div>
+                        {simulationResults
+                          .filter((r) => r.region !== "India")
+                          .map((rec, i) => (
+                            <div
+                              key={i}
+                              className={`result-card ${rec.score > 0.7 ? "high-chance" : "medium-chance"}`}
+                              onClick={() => setSelectedCollege(rec)}
+                            >
+                              <div className="result-header">
+                                <h4>{rec.college}</h4>
+                                <span className="badge ai-badge">
+                                  AI Score: {Math.round(rec.score * 100)}
+                                </span>
+                              </div>
 
-                            <div className="chance-meter">
-                              <div className="chance-bar" style={{ width: `${Math.round(rec.score * 100)}%` }}></div>
-                              <span className="chance-text">{Math.round(rec.score * 100)}% Match</span>
-                            </div>
+                              <div className="chance-meter">
+                                <div
+                                  className="chance-bar"
+                                  style={{
+                                    width: `${Math.round(rec.score * 100)}%`,
+                                  }}
+                                ></div>
+                                <span className="chance-text">
+                                  {Math.round(rec.score * 100)}% Match
+                                </span>
+                              </div>
 
-                            <div className="criteria-check">
-                              <h5>Holistic Review:</h5>
-                              <p className="ai-insight">
-                                Analyzed considering skills, gpa and test score.
-                              </p>
-                              <ul>
-                                <li className={rec.min_gpa <= parseFloat(simulationValues.gpa) ? "pass" : "fail"}>
-                                  Min GPA: {rec.min_gpa}
-                                </li>
-                                <li className="pass">
-                                  Skill Fit: {rec.required_skills?.length || "General"}
-                                </li>
-                              </ul>
+                              <div className="criteria-check">
+                                <h5>Holistic Review:</h5>
+                                <p className="ai-insight">
+                                  Analyzed considering skills, gpa and test
+                                  score.
+                                </p>
+                                <ul>
+                                  <li
+                                    className={
+                                      rec.min_gpa <=
+                                      parseFloat(simulationValues.gpa)
+                                        ? "pass"
+                                        : "fail"
+                                    }
+                                  >
+                                    Min GPA: {rec.min_gpa}
+                                  </li>
+                                  <li className="pass">
+                                    Skill Fit:{" "}
+                                    {rec.required_skills?.length || "General"}
+                                  </li>
+                                </ul>
+                              </div>
                             </div>
-                          </div>
-                        ))}
-                        {simulationResults.filter(r => r.region !== 'India').length === 0 && (
-                          <p className="no-data">No Foreign colleges match your criteria.</p>
+                          ))}
+                        {simulationResults.filter((r) => r.region !== "India")
+                          .length === 0 && (
+                          <p className="no-data">
+                            No Foreign colleges match your criteria.
+                          </p>
                         )}
                       </div>
                     </div>
-
                   </div>
                 ) : (
                   <div className="empty-state">
-                    <p>Enter your details and click Simulate to see your chances.</p>
+                    <p>
+                      Enter your details and click Simulate to see your chances.
+                    </p>
                   </div>
                 )}
               </div>
@@ -570,8 +709,13 @@ const StudentRecommendations = () => {
       {/* Detail Modal */}
       {selectedCollege && (
         <div className="modal-overlay" onClick={() => setSelectedCollege(null)}>
-          <div className="modal-content" onClick={e => e.stopPropagation()}>
-            <button className="close-btn" onClick={() => setSelectedCollege(null)}>×</button>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <button
+              className="close-btn"
+              onClick={() => setSelectedCollege(null)}
+            >
+              ×
+            </button>
 
             <div className="modal-header">
               <h2>{selectedCollege.college}</h2>
@@ -584,20 +728,46 @@ const StudentRecommendations = () => {
                 <div className="stats-grid">
                   <div className="stat-item">
                     <label>Min GPA</label>
-                    <span className={selectedCollege.min_gpa <= parseFloat(simulationValues.gpa) ? "pass" : "fail"}>
+                    <span
+                      className={
+                        selectedCollege.min_gpa <=
+                        parseFloat(simulationValues.gpa)
+                          ? "pass"
+                          : "fail"
+                      }
+                    >
                       {selectedCollege.min_gpa}
                     </span>
                   </div>
                   <div className="stat-item">
                     <label>Min Test Score</label>
-                    <span className={selectedCollege.min_test > 0 && selectedCollege.min_test <= parseInt(simulationValues.test_score) ? "pass" : selectedCollege.min_test > 0 ? "fail" : ""}>
-                      {selectedCollege.min_test > 0 ? selectedCollege.min_test : "N/A"}
+                    <span
+                      className={
+                        selectedCollege.min_test > 0 &&
+                        selectedCollege.min_test <=
+                          parseInt(simulationValues.test_score)
+                          ? "pass"
+                          : selectedCollege.min_test > 0
+                            ? "fail"
+                            : ""
+                      }
+                    >
+                      {selectedCollege.min_test > 0
+                        ? selectedCollege.min_test
+                        : "N/A"}
                     </span>
                   </div>
                   <div className="stat-item">
                     <label>Probability</label>
                     <span className="highlight">
-                      {Math.round(selectedCollege.score * (selectedCollege.region === 'India' && selectedCollege.score > 0 ? 1 : 100))}%
+                      {Math.round(
+                        selectedCollege.score *
+                          (selectedCollege.region === "India" &&
+                          selectedCollege.score > 0
+                            ? 1
+                            : 100),
+                      )}
+                      %
                     </span>
                   </div>
                 </div>
@@ -606,7 +776,11 @@ const StudentRecommendations = () => {
               <div className="info-section">
                 <h3>📝 Required Documents</h3>
                 <ul className="doc-list">
-                  {(DOCUMENT_CHECKLIST[selectedCollege.region === 'India' ? 'India' : 'Foreign'] || []).map((doc, i) => (
+                  {(
+                    DOCUMENT_CHECKLIST[
+                      selectedCollege.region === "India" ? "India" : "Foreign"
+                    ] || []
+                  ).map((doc, i) => (
                     <li key={i}>
                       <span className="check-icon">✓</span> {doc}
                     </li>
@@ -618,19 +792,28 @@ const StudentRecommendations = () => {
                 <h3>🎓 Key Skills</h3>
                 <div className="skill-tags">
                   {(selectedCollege.required_skills || []).map((skill, i) => (
-                    <span key={i} className={`skill-tag ${simulationValues.skills.includes(skill) ? 'match' : ''}`}>
+                    <span
+                      key={i}
+                      className={`skill-tag ${simulationValues.skills.includes(skill) ? "match" : ""}`}
+                    >
                       {skill}
                     </span>
                   ))}
-                  {(!selectedCollege.required_skills || selectedCollege.required_skills.length === 0) && (
-                    <span className="text-muted">General Admission (No specific major skills required)</span>
+                  {(!selectedCollege.required_skills ||
+                    selectedCollege.required_skills.length === 0) && (
+                    <span className="text-muted">
+                      General Admission (No specific major skills required)
+                    </span>
                   )}
                 </div>
               </div>
             </div>
 
             <div className="modal-footer">
-              <button className="btn btn-primary" onClick={() => toast.info("Application feature coming soon!")}>
+              <button
+                className="btn btn-primary"
+                onClick={() => toast.info("Application feature coming soon!")}
+              >
                 Start Application
               </button>
             </div>

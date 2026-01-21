@@ -18,10 +18,14 @@ import time
 import threading
 import subprocess
 import flwr as fl
+from dotenv import load_dotenv
 
 # Resolve paths relative to this file
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT_DIR = os.path.abspath(os.path.join(CURRENT_DIR, "..", "..", ".."))
+
+# Load environment variables
+load_dotenv(os.path.join(ROOT_DIR, ".env"))
 
 from kg.builder import KGBuilder
 from fl_client import StudentClient
@@ -44,7 +48,7 @@ def check_neo4j():
         print("✅ Neo4j is running")
     except Exception as e:
         print("❌ Neo4j is NOT running.")
-        print("   Please start Neo4j on bolt://localhost:7687")
+        print(f"   Please start Neo4j on {os.environ.get('NEO4J_URI', 'neo4j://127.0.0.1:7687')}")
         print("   Error:", e)
         sys.exit(1)
 
@@ -108,8 +112,13 @@ if __name__ == "__main__":
     
     # Remove old model if exists
     if os.path.exists(MODEL_PATH):
-        os.remove(MODEL_PATH)
-        print("\n🧹 Removed old global model")
+        try:
+            os.remove(MODEL_PATH)
+            print("\n🧹 Removed old global model")
+        except PermissionError:
+            print(f"\n⚠️ Could not remove old model - file is in use. Continuing anyway...")
+        except Exception as e:
+            print(f"\n⚠️ Could not remove old model: {e}. Continuing anyway...")
     
     # Step 4: Start Flower server
     print("\n🌸 Step 4: Starting Flower server...")

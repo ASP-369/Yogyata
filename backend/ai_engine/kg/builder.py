@@ -18,7 +18,7 @@ class KGBuilder:
     def __init__(self, uri=None, user=None, password=None):
         self.uri = uri or os.environ.get("NEO4J_URI", "bolt://localhost:7687")
         self.user = user or os.environ.get("NEO4J_USER", "neo4j")
-        self.password = password or os.environ.get("NEO4J_PASSWORD", "nishta@10ga")
+        self.password = password or os.environ.get("NEO4J_PASSWORD", "your_password")
         self.driver = GraphDatabase.driver(self.uri, auth=(self.user, self.password))
     
     def create_schema(self):

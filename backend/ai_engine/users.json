@@ -28,5 +28,19 @@
         "test_score": 1200,
         "skills": [],
         "aspirations": []
+    },
+    {
+        "id": "teststudent@gmail.com",
+        "username": "teststudent@gmail.com",
+        "email": "teststudent@gmail.com",
+        "gpa": 0.0,
+        "test_score": 0,
+        "skills": [
+            "Java",
+            "C++",
+            "HTML",
+            "CSS"
+        ],
+        "aspirations": []
     }
 ]

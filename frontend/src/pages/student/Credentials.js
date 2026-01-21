@@ -20,8 +20,10 @@ const StudentCredentials = () => {
   });
 
   useEffect(() => {
-    fetchCredentials();
-  }, [pagination.page, filter]);
+    if (user) {
+      fetchCredentials();
+    }
+  }, [pagination.page, filter, user]);
 
   const fetchCredentials = async () => {
     try {
@@ -43,14 +45,20 @@ const StudentCredentials = () => {
 
       if (!studentData?.aadhar) {
         console.warn("No aadhar linked to student");
+        setCredentials([]);
+        setLoading(false);
         return;
       }
 
       // 2. Fetch Credentials
+      // Convert aadhar to number for BIGINT comparison in student_creds table
+      const aadharNumber = parseInt(studentData.aadhar, 10);
+      console.log("Fetching credentials for aadhar:", aadharNumber);
+
       let query = supabase
         .from("student_creds")
         .select("*")
-        .eq("aadhar", studentData.aadhar);
+        .eq("aadhar", aadharNumber);
 
       // Client-side filtering for status if needed, or query params
       // Since map status logic is custom:
@@ -67,15 +75,25 @@ const StudentCredentials = () => {
 
       const { data: creds, error: credsError } = await query;
 
+      console.log("Credentials query result:", { creds, credsError });
+
       if (credsError) {
         console.error("Error fetching credentials:", credsError);
         setCredentials([]);
       } else {
+        console.log(
+          `Found ${(creds || []).length} credentials for aadhar ${aadharNumber}`,
+        );
         const mapped = (creds || []).map((c) => ({
           id: c.id,
           title: `Credential #${c.id}`,
           issuer_name: "Issued via Yogyata",
-          status: c.verified ? "verified" : "pending_blockchain",
+          status:
+            c.verified === true
+              ? "verified"
+              : c.verified === false
+                ? "rejected"
+                : "pending_blockchain",
           issue_date: new Date().toISOString(),
           blockchain_hash: c.ipfs_hash, // Display IPFS hash as requested
           description: `IPFS: ${c.ipfs_hash}`,
