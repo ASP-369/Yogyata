@@ -325,4 +325,6 @@ MIT License
 
 ## 👥 Contributors
 
-- Yogyata Development Team
+- Khushi Choudki
+- Anirudh Sai
+- Shreya Prasad
