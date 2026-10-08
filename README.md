@@ -319,10 +319,6 @@ CREATE TABLE student_profiles (
 --error: #EF4444
 ```
 
-## 📝 License
-
-MIT License
-
 ## 👥 Contributors
 
 - Khushi Choudki
